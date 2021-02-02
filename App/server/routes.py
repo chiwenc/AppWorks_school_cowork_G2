@@ -35,10 +35,14 @@ def user_behavior(date):
 
     query_data = db.engine.execute(select_analysis_sql, date + ' 00:00:00')
     data = query_data.fetchone()
-    print(data)
 
-    result = {
-        "behavior_count": [data['view_count'], data['view_item_count'], data['add_to_cart_count'], data['checkout_count']],
-        "user_count": [data['unique_user_count'], data['new_user_count'], data['return_user_count']]
-    }
-    return result
+    if (data):
+        return {
+            "behavior_count": [data['view_count'], data['view_item_count'], data['add_to_cart_count'], data['checkout_count']],
+            "user_count": [data['unique_user_count'], data['new_user_count'], data['return_user_count']]
+        }
+    else:
+        return {
+            "behavior_count": [0, 0, 0, 0],
+            "user_count": [0, 0, 0]
+        }
