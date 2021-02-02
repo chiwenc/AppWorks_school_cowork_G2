@@ -17,11 +17,6 @@ def dashboard():
         select *
         from tracking_realtime 
     """
-
-    query_data = db.engine.execute(sql_cmd)
-    for event in query_data.fetchall():
-        print(event)
-
     return render_template('dashboard.html', last_updated=dir_last_updated('server/static'))
 
 @app.route('/api/1.0/user/behavior/<date>')
