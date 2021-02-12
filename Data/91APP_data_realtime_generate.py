@@ -52,8 +52,9 @@ def generate():
         print('write:', row["request_url"])
         new_request_url = parse(row["request_url"])
         cursor.execute(
-            f"INSERT INTO tracking_raw_realtime (request_url) \
-              VALUES('{new_request_url}')"
+            "INSERT INTO tracking_raw_realtime (request_url) \
+              VALUES(%s)",
+            (new_request_url)
         )
         conn.commit()
         time.sleep(random.randint(1,5))

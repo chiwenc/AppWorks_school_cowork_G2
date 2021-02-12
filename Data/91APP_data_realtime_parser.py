@@ -61,7 +61,7 @@ def clean_data(last_time, current_time):
     source_conn.commit()
 
     server_cursor = server_conn.cursor()
-    for row in rows:  
+    for row in rows: 
         obj = parse(row)
         event = obj['event']
         view_detail = obj.get('view_detail')
