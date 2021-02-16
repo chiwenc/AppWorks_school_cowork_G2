@@ -13,7 +13,7 @@
             <span class="caret"></span></button>
             <ul class="dropdown-menu">
                 {% for product in products %}
-                <li><a href="#" name={{product.item_id}} onclick=show(this.name) > {{product.title}}</a></li>
+                <li><a href="#" name={{product.id}} onclick=show(this.name) > {{product.title}}</a></li>
                 {% endfor %} 
             </ul>
         </div>

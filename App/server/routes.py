@@ -1,10 +1,32 @@
 from server import app
 
+from collections import defaultdict
 from flask import Flask, render_template, flash, redirect, url_for, request
-from werkzeug.urls import url_parse
-from server import db
-
+import pymysql
 import os
+import random
+from server.products import get_products, get_products_variants
+from server.tracking import get_user_behavior_by_date
+from itertools import groupby
+from werkzeug.urls import url_parse
+from werkzeug.utils import secure_filename
+
+PAGE_SIZE = 6
+ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
+
+db_host = os.environ.get('DB_HOST')
+db_user = os.environ.get('DB_USERNAME')
+db_password = os.environ.get('DB_PASSWORD')
+db_database = os.environ.get('DB_DATABASE')
+
+conn = pymysql.connect(
+    host = db_host,
+    user = db_user,
+    password = db_password,
+    database = db_database,
+    cursorclass = pymysql.cursors.DictCursor
+)
+
 def dir_last_updated(folder):
     return str(max(os.path.getmtime(os.path.join(root_path, f))
                    for root_path, dirs, files in os.walk(folder)
@@ -15,28 +37,15 @@ def dir_last_updated(folder):
 def dashboard():
     return render_template('dashboard.html', last_updated=dir_last_updated('server/static'))
 
-@app.route('/products')
-def products():
-    select_products_sql = " \
-        SELECT item_id, title FROM amazon_product \
-    "
-    query_data = db.engine.execute(select_products_sql)
-    products = query_data.fetchall()
-    print(products)
-    return render_template('products.html', products = products)
+from time import sleep
+@app.route('/sleep')
+def long_running():
+    sleep(10)
+    return "Wake up!"
 
 @app.route('/api/1.0/user/behavior/<date>')
-def user_behavior(date):
-    print(date)
-    select_analysis_sql = """
-        SELECT *
-        FROM tracking_analysis
-        WHERE date = %s
-    """
-
-    query_data = db.engine.execute(select_analysis_sql, date + ' 00:00:00')
-    data = query_data.fetchone()
-
+def api_get_user_behavior(date):
+    data = get_user_behavior_by_date(date)
     if (data):
         return {
             "behavior_count": [data['view_count'], data['view_item_count'], data['add_to_cart_count'], data['checkout_count']],
@@ -48,32 +57,190 @@ def user_behavior(date):
             "user_count": [0, 0, 0]
         }
 
-@app.route('/api/1.0/user/product/<id>')
-def get_products(id):
-    res = db.engine.execute("SELECT * FROM amazon_product WHERE item_id = %s", id)
-    product = res.fetchone()
-    return {
-        "item_id": product["item_id"],
-        "title": product["title"],
-        "image": product["image"] 
+def is_integer(n):
+    try:
+        float(n)
+    except ValueError:
+        return False
+    else:
+        return float(n).is_integer()
+
+def find_product(category, paging):
+    if (category == 'all') :
+        return get_products(PAGE_SIZE, paging)
+    elif (category in ['men', 'women', 'accessories']):
+        return get_products(PAGE_SIZE, paging, {"category": category})
+    elif (category == 'search'):
+        keyword = request.values["keyword"]
+        if (keyword):
+            return get_products(PAGE_SIZE, paging, {"keyword": keyword})
+    elif (category == 'details'):
+        product_id = request.values["id"]
+        return get_products(PAGE_SIZE, paging, {"id": product_id})
+    elif (category == 'recommend'):
+        product_id = request.values["id"]
+        return get_products(3, paging, {"recommend": product_id})
+
+def get_products_with_detail(url_root, products):
+    product_ids = [p["id"] for p in products]
+    variants = get_products_variants(product_ids)
+    variants_map = defaultdict(list)
+    for variant in variants:
+        variants_map[variant["product_id"]].append(variant)
+
+    def parse(product, variants_map):
+        product_id = product["id"]
+        image_path = url_root + 'static/assets/' + str(product_id) + '/'
+        product["main_image"] = image_path + product["main_image"]
+        product["images"] = [image_path + img for img in product["images"].split(',')]
+        product_variants = variants_map[product_id]
+        if (not product_variants):
+            return product
+
+        product["variants"] = [
+            {
+                "color_code": v["color_code"],
+                "size": v["size"],
+                "stock": v["stock"]
+            }
+            for v in product_variants
+        ]
+        colors = [
+            {
+                "code": v["color_code"],
+                "name": v["color_name"]
+            }
+            for v in product_variants
+        ]
+        product["colors"] = list({c['code'] + c["name"]: c for c in colors}.values())
+        product["sizes"] = list(set([
+            v["size"]
+            for v in product_variants   
+        ]))
+        return product
+
+    return [
+        parse(product, variants_map) for product in products
+    ]
+
+@app.route('/api/1.0/products/<category>', methods=['GET'])
+def api_get_products(category):
+    paging = request.values.get('paging') or 0
+    paging = int(paging)
+    res = find_product(category, paging)
+
+    if (not res):
+        return {"error":'Wrong Request'}
+
+    products = res.get("products")
+    product_count = res.get("product_count")
+
+    if (not products):
+        return {"error":'Wrong Request'}
+    
+    if (not len(products)):
+        if (category == 'details'):
+            return {"data": None}
+        else:
+            return {"data": []}
+
+    products_with_detail = \
+        get_products_with_detail(request.url_root, products) if products[0]["source"] == 'native' else products
+    if (category == 'details'):
+        products_with_detail = products_with_detail[0]
+
+    result = {}
+    if (product_count > (paging + 1) * PAGE_SIZE):
+        result = {
+            "data": products_with_detail,
+            "next_paging": paging + 1
+        } 
+    else: 
+        result = {"data": products_with_detail}
+    
+    return result
+
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
+@app.route('/admin/product.html', methods=['GET'])
+def admin_product():
+    return render_template('product_create.html')
+
+def save_file(folder, file):
+    folder_root = app.root_path + app.config['UPLOAD_FOLDER']
+    folder_path = folder_root + '/' + folder
+    if not os.path.isdir(folder_path):
+        os.mkdir(folder_path)
+
+    if file and allowed_file(file.filename):
+        filename = secure_filename(file.filename)
+        file.save(os.path.join(
+            folder_path,
+            filename
+        ))
+        return filename
+    else:
+        return None
+
+@app.route('/api/1.0/product', methods=['POST'])
+def upload_file():
+    form = request.form.to_dict()
+    product_id = form["product_id"]
+    main_image = request.files.get("main_image")
+    main_image_name = save_file(product_id, main_image)
+    other_images = request.files.getlist('other_images')
+    other_images_names = []
+    for file in other_images:
+        other_images_names.append(save_file(product_id, file))
+
+    product = {
+        'id': form['product_id'],
+        'category': form['category'],
+        'title': form['title'],
+        'description': form['description'],
+        'price': int(form['price']),
+        'texture': form['texture'],
+        'wash': form['wash'],
+        'place': form['place'],
+        'note': form['note'],
+        'story': form['story'],
+        'main_image': main_image_name,
+        'images': ','.join(other_images_names),
+        'source': 'native'
     }
 
-@app.route('/api/1.0/user/product/<id>/recommend')
-def get_recommend_products(id):
-    res = db.engine.execute("\
-        SELECT * FROM amazon_product \
-        INNER JOIN similarity_model ON amazon_product.item_id = similarity_model.item2_id \
-        WHERE similarity_model.item1_id = %s \
-        ORDER BY similarity DESC \
-        LIMIT 3",
-        id
-    )
-    products = [
-        {
-            "item_id": p["item_id"],
-            "title": p["title"],
-            "image": p["image"] 
-        }
-        for p in res.fetchall()
+    columns = ','.join([f"`{key}`" for key in product.keys()])
+    bindings = ','.join(['%s' for i in range(len(product))])
+    insert_product_sql = f" \
+        INSERT INTO product ( \
+            {columns} \
+        ) VALUES ( \
+            {bindings} \
+        ) \
+    "
+
+    cursor = conn.cursor()
+    cursor.execute(insert_product_sql, list(product.values()))
+
+    variants = [   
+        (size, color_code, color_name, random.randint(1,10), product_id)
+        for (color_code, color_name) 
+        in zip(form["color_codes"].split(','), form["color_names"].split(','))
+        for size
+        in form["sizes"].split(',')
     ]
-    return {"data": products}
+
+    insert_variant_sql = " \
+        INSERT INTO variant (color_code, color_name, size, stock, product_id) \
+        VALUES(%s, %s, %s, %s, %s) \
+    "
+    cursor.executemany(insert_variant_sql, variants)
+    conn.commit()
+    return "Ok"
+
+@app.route('/recommendation')
+def product_recommendation():
+    res = get_products(100, 0, {"source": "amazon"},)
+    return render_template('product_recommendation.html', products = [{"id": p["id"], "title": p["title"]} for p in res["products"]])

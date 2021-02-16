@@ -81,5 +81,8 @@ midterm
 # https
 .well-known
 
+# Mac
+.DS_Store
+
 # python
 __pycache__

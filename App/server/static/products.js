@@ -9,11 +9,11 @@ function append_product_dom(product_dom, product) {
     product_name.innerText = product.title
     product_name.style.fontSize = "x-large";
     product_link = document.createElement("a");
-    product_link.href = "https://www.amazon.com/dp/" + product.item_id
+    product_link.href = "https://www.amazon.com/dp/" + product.id
     product_link.target = "_blank"
     product_link.rel = "noopener noreferrer"
     product_image = document.createElement("img")
-    product_image.src = product.image
+    product_image.src = product.image_base64
     product_link.appendChild(product_image)
     product_dom.appendChild(product_name)
     product_dom.appendChild(product_link)
@@ -43,11 +43,11 @@ function show_recommented_products(products) {
 
 async function show(item_id) {
     console.log(item_id)
-    const product = await Promise.resolve($.ajax('/api/1.0/user/product/' + item_id))
+    const product = await Promise.resolve($.ajax('/api/1.0/products/details?id=' + item_id))
     console.log(product)
-    show_product(product)
+    show_product(product.data)
 
-    const recommended_products = await Promise.resolve($.ajax('/api/1.0/user/product/' + item_id + '/recommend'))
+    const recommended_products = await Promise.resolve($.ajax('/api/1.0/products/recommend?id=' + item_id))
     console.log(recommended_products)
     show_recommented_products(recommended_products.data)
 }

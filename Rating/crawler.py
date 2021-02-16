@@ -36,7 +36,7 @@ def get_similar_items(item_id):
 def insert_product(item_id, title, image):
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO amazon_product (item_id, title, image) VALUES(%s, %s, %s)",
+        "INSERT INTO product (id, title, image_base64) VALUES(%s, %s, %s)",
         (item_id, title, image)
     )
     conn.commit()
