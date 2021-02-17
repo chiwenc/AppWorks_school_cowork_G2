@@ -1,11 +1,13 @@
 from server import app
-
+import bcrypt
 from collections import defaultdict
-from flask import Flask, render_template, flash, redirect, url_for, request
+from flask import Flask, render_template, flash, redirect, url_for, request, jsonify
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import pymysql
 import os
 import random
-from server.products import get_products, get_products_variants
+from server.user import get_user, create_user
+from server.products import get_products, get_products_variants, create_product
 from server.tracking import get_user_behavior_by_date
 from itertools import groupby
 from werkzeug.urls import url_parse
@@ -14,23 +16,87 @@ from werkzeug.utils import secure_filename
 PAGE_SIZE = 6
 ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
-db_host = os.environ.get('DB_HOST')
-db_user = os.environ.get('DB_USERNAME')
-db_password = os.environ.get('DB_PASSWORD')
-db_database = os.environ.get('DB_DATABASE')
-
-conn = pymysql.connect(
-    host = db_host,
-    user = db_user,
-    password = db_password,
-    database = db_database,
-    cursorclass = pymysql.cursors.DictCursor
-)
-
 def dir_last_updated(folder):
     return str(max(os.path.getmtime(os.path.join(root_path, f))
                    for root_path, dirs, files in os.walk(folder)
                    for f in files))
+
+def get_hashed_password(plain_text_password):
+    return bcrypt.hashpw(plain_text_password.encode('utf8'), bcrypt.gensalt())
+
+def check_password(plain_text_password, hashed_password):
+    return bcrypt.checkpw(plain_text_password.encode('utf8'), hashed_password.encode('utf8'))
+
+@app.route('/signin.html', methods=['GET'])
+def signin_page():
+    return render_template('signin.html', last_updated=dir_last_updated('server/static'))
+
+@app.route('/signup.html', methods=['GET'])
+def signup_page():
+    return render_template('signup.html', last_updated=dir_last_updated('server/static'))
+
+@app.route('/profile.html', methods=['GET'])
+def profile_page():
+    return render_template('profile.html', last_updated=dir_last_updated('server/static'))
+
+@app.route('/api/1.0/signin', methods=['POST'])
+def signin():
+    form = request.form.to_dict()
+    email = form.get('email', None) 
+    password = form.get('password', None)
+
+    user = get_user(email)
+    if not user:
+        return jsonify({"error": "Bad username"}), 401
+
+    if not check_password(password, user["password"]):
+        return jsonify({"error": "Bad password"}), 401
+
+    access_token = create_access_token(identity=user["name"])
+    return {
+        "access_token": access_token,
+        "access_expired": 3600,
+        "user": {
+            "id": user["id"],
+            "rovider": 'native',
+            "name": user["name"],
+            "email": email,
+            "picture": ""
+        }
+    }
+
+@app.route('/api/1.0/signup', methods=['POST'])
+def signup():
+    form = request.form.to_dict()
+    name = form.get('name', None)
+    email = form.get('email', None) 
+    password = form.get('password', None)
+    encrypted_password = get_hashed_password(password)
+
+    user = get_user(email)
+    if user:
+        return jsonify({"error": "User already existed"}), 401
+
+    access_token = create_access_token(identity=name)
+    user_id = create_user('native', email, encrypted_password, name, access_token, 2592000)
+    return {
+        "access_token": access_token,
+        "access_expired": 3600,
+        "user": {
+            "id": user_id,
+            "rovider": 'native',
+            "name": name,
+            "email": email,
+            "picture": ""
+        }
+    }
+
+@app.route('/api/1.0/profile', methods=['GET'])
+@jwt_required()
+def protected():
+    current_user = get_jwt_identity()
+    print(current_user)
+    return f"Welcome! {current_user}"
 
 @app.route('/')
 @app.route('/dashboard')
@@ -185,7 +251,7 @@ def save_file(folder, file):
         return None
 
 @app.route('/api/1.0/product', methods=['POST'])
-def upload_file():
+def api_create_product():
     form = request.form.to_dict()
     product_id = form["product_id"]
     main_image = request.files.get("main_image")
@@ -211,33 +277,21 @@ def upload_file():
         'source': 'native'
     }
 
-    columns = ','.join([f"`{key}`" for key in product.keys()])
-    bindings = ','.join(['%s' for i in range(len(product))])
-    insert_product_sql = f" \
-        INSERT INTO product ( \
-            {columns} \
-        ) VALUES ( \
-            {bindings} \
-        ) \
-    "
-
-    cursor = conn.cursor()
-    cursor.execute(insert_product_sql, list(product.values()))
-
     variants = [   
-        (size, color_code, color_name, random.randint(1,10), product_id)
+        {
+            "size": size,
+            "color_code": color_code,
+            "color_name": color_name,
+            "stock": random.randint(1,10),
+            "product_id": product_id
+        }
         for (color_code, color_name) 
         in zip(form["color_codes"].split(','), form["color_names"].split(','))
         for size
         in form["sizes"].split(',')
     ]
 
-    insert_variant_sql = " \
-        INSERT INTO variant (color_code, color_name, size, stock, product_id) \
-        VALUES(%s, %s, %s, %s, %s) \
-    "
-    cursor.executemany(insert_variant_sql, variants)
-    conn.commit()
+    create_product(product, variants)
     return "Ok"
 
 @app.route('/recommendation')

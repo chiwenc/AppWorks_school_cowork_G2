@@ -1,19 +1,5 @@
-import pymysql
-import os
+from server import conn
 import random
-
-db_host = os.environ.get('DB_HOST')
-db_user = os.environ.get('DB_USERNAME')
-db_password = os.environ.get('DB_PASSWORD')
-db_database = os.environ.get('DB_DATABASE')
-
-conn = pymysql.connect(
-    host = db_host,
-    user = db_user,
-    password = db_password,
-    database = db_database,
-    cursorclass = pymysql.cursors.DictCursor
-)
 
 def get_products(page_size, paging, requirement = {}):
     cursor = conn.cursor()
@@ -70,3 +56,26 @@ def get_products_variants(product_ids):
     variants = cursor.fetchall()
     conn.commit()
     return variants
+
+def create_product(product, variants):
+    cursor = conn.cursor()
+    columns = ','.join([f"`{key}`" for key in product.keys()])
+    bindings = ','.join(['%s' for i in range(len(product))])
+    insert_product_sql = f" \
+        INSERT INTO product ( \
+            {columns} \
+        ) VALUES ( \
+            {bindings} \
+        ) \
+    "
+    cursor.execute(insert_product_sql, list(product.values()))
+
+    columns = ','.join([f"`{key}`" for key in variants[0].keys()])
+    bindings = ','.join(['%s' for i in range(len(variants[0]))])
+    insert_variant_sql = f" \
+        INSERT INTO variant ({columns}) \
+        VALUES({bindings}) \
+    "
+    cursor.executemany(insert_variant_sql, [list(v.values()) for v in variants])
+
+    conn.commit()  

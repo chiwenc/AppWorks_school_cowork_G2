@@ -1,0 +1,32 @@
+<html>
+    <head>
+        <script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>  
+
+        <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet" /> 
+        <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script> 
+        <script src="https://cdn.bootcss.com/moment.js/2.18.1/moment-with-locales.min.js"></script>  
+        <link href="https://cdn.bootcss.com/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" rel="stylesheet" />
+        <script src="https://cdn.bootcss.com/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>  
+    </head>
+    <body>
+        <h1 id="welcome"></h1>
+    </body>
+    <script>
+        const localStorage = window.localStorage;
+        const access_token = localStorage.getItem('access_token');
+        if (!access_token) {
+            window.location.href = "/signin.html";
+        }
+        $.ajax({
+            url: "/api/1.0/profile",
+            headers: {"Authorization": "Bearer " + access_token},
+            success: function (result) {
+                $('#welcome').text(result);
+                console.log(result);
+            },
+            error: function (error) {
+                window.location.href = "/signin.html";
+            }
+        });
+    </script>
+</html>
