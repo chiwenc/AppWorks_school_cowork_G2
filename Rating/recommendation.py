@@ -1,5 +1,6 @@
 import csv
 import pymysql
+from dotenv import load_dotenv
 import pymysql.cursors
 from urllib.parse import unquote
 from collections import defaultdict
@@ -8,15 +9,22 @@ import random
 from numpy import dot
 from numpy.linalg import norm
 from math import acos, pi
+import os
 
+load_dotenv(verbose=True)
 random.seed(datetime.utcnow())
 
+db_host = os.environ.get('DB_HOST')
+db_user = os.environ.get('DB_USERNAME')
+db_password = os.environ.get('DB_PASSWORD')
+db_database = os.environ.get('DB_DATABASE')
+
 conn = pymysql.connect(
-    host = 'localhost',
-    user = 'arthurlin',
-    password = '1234',
-    database = 'stylish_backend',
-    cursorclass=pymysql.cursors.DictCursor
+    host = db_host,
+    user = db_user,
+    password = db_password,
+    database = db_database,
+    cursorclass = pymysql.cursors.DictCursor
 )
 
 # user: 39387
@@ -88,14 +96,9 @@ for row in all_rating_data:
 
 # normalize
 for user_index in range(len(users_set)):
-    # print("=============")
     rating_sum = sum([user_item_rating[(user_index, item_index)] for item_index in user_items[user_index]])
-    # print(user_index)
     rating_count = len(user_items[user_index])
     rating_avg = round(rating_sum / rating_count, 3)
-    # print('rating_sum:', rating_sum)
-    # print('rating_count', rating_count)
-    # print("rating_avg:", rating_avg)
     for item_index in user_items[user_index]:
         user_item_rating[(user_index, item_index)] = rating_avg
 
@@ -121,9 +124,7 @@ for item_index in range(len(items_set)):
         ]
         cos_sim = round(dot(vector, compare_vector)/(norm(vector) * norm(compare_vector)), 3)
         similarity = round(1 - (acos(cos_sim) / pi), 4)
-        # if (count<10):
-        #     print("compare_vector:", compare_vector, similarity)
-    
+
         similarities.append((
             item_inverse_mapping[item_index],
             item_inverse_mapping[compare_item_index],

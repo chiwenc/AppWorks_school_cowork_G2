@@ -7,31 +7,34 @@ from datetime import datetime, timedelta
 import time
 from dotenv import load_dotenv
 import os
+from pymongo import MongoClient
 
 load_dotenv(verbose=True)
-db_source_host = os.environ.get('DB_SOURCE_HOST')
-db_source_user = os.environ.get('DB_SOURCE_USERNAME')
-db_source_password = os.environ.get('DB_SOURCE_PASSWORD')
-db_source_database = os.environ.get('DB_SOURCE_DATABASE')
 
-db_server_host = os.environ.get('DB_SERVER_HOST')
-db_server_user = os.environ.get('DB_SERVER_USERNAME')
-db_server_password = os.environ.get('DB_SERVER_PASSWORD')
-db_server_database = os.environ.get('DB_SERVER_DATABASE')
+mongo_host = os.environ.get('MONGO_HOST')
+mongo_user = os.environ.get('MONGO_USERNAME')
+mongo_password = os.environ.get('MONGO_PASSWORD')
+mongo_database = os.environ.get('MONGO_DATABASE')
 
-source_conn = pymysql.connect(
-    host = db_source_host,
-    user = db_source_user,
-    password = db_source_password,
-    database = db_source_database,
-    cursorclass = pymysql.cursors.DictCursor
-)
+mysql_host = os.environ.get('MYSQL_HOST')
+mysql_user = os.environ.get('MYSQL_USERNAME')
+mysql_password = os.environ.get('MYSQL_PASSWORD')
+mysql_database = os.environ.get('MYSQL_DATABASE')
 
-server_conn = pymysql.connect(
-    host = db_server_host,
-    user = db_server_user,
-    password = db_server_password,
-    database = db_server_database,
+client = MongoClient(mongo_host,
+    username = mongo_user,
+    password = mongo_password,
+    authSource = mongo_database,
+    authMechanism = 'SCRAM-SHA-1')
+db = client[mongo_database]
+collection = db['tracking_raw_realtime']
+# delete: db.tracking_raw_realtime.remove({})
+
+conn = pymysql.connect(
+    host = mysql_host,
+    user = mysql_user,
+    password = mysql_password,
+    database = mysql_database,
     cursorclass = pymysql.cursors.DictCursor
 )
 
@@ -52,40 +55,34 @@ def parse(row):
     return obj
 
 def clean_data(last_time, current_time):
-
-    source_cursor = source_conn.cursor()
     print(last_time.strftime('%Y-%m-%d %H:%M:%S'), current_time.strftime('%Y-%m-%d %H:%M:%S'))
-    select_sql = "SELECT * FROM tracking_raw_realtime WHERE created_at > %s AND created_at <= %s"
-    source_cursor.execute(select_sql, (last_time.strftime('%Y-%m-%d %H:%M:%S'), current_time.strftime('%Y-%m-%d %H:%M:%S')))
-    rows = source_cursor.fetchall()
-    source_conn.commit()
-
-    server_cursor = server_conn.cursor()
+    rows = db.tracking_raw_realtime.find({"created_at": {"$gt": last_time.strftime('%Y-%m-%d %H:%M:%S'), "$lte": current_time.strftime('%Y-%m-%d %H:%M:%S')}})
+    cursor = conn.cursor()
     for row in rows: 
         obj = parse(row)
+        print(obj)
         event = obj['event']
         view_detail = obj.get('view_detail')
         item_id = obj.get('item_id')
         item_id = item_id if (item_id and item_id.isdigit()) else None
         checkout_step = obj.get('checkout_step')
         
-        # print(obj['cid'], obj['start_time'], event, view_detail, item_id)
         insert_sql = "INSERT INTO tracking_realtime (client_id, time, event_type, view_detail, item_id, checkout_step) \
               VALUES (%s, %s, %s, %s, %s, %s)"
-        server_cursor.execute(insert_sql, (obj['cid'], obj['start_time'], event, view_detail, item_id, checkout_step))
-    server_conn.commit()
+        cursor.execute(insert_sql, (obj['cid'], obj['start_time'], event, view_detail, item_id, checkout_step))
+    conn.commit()
 
 def aggregate_data(current_time):
     current_time = current_time.strftime('%Y-%m-%d 00:00:00')
     print('current_time:', current_time)
 
-    server_cursor = server_conn.cursor()
+    cursor = conn.cursor()
     select_today_user_sql = "SELECT DISTINCT(client_id) FROM tracking_realtime WHERE time >= %s"
     select_before_user_sql = "SELECT DISTINCT(client_id) FROM tracking_realtime WHERE time < %s"
-    server_cursor.execute(select_today_user_sql, (current_time))
-    today_users = server_cursor.fetchall()
-    server_cursor.execute(select_before_user_sql, (current_time))
-    before_users = server_cursor.fetchall()
+    cursor.execute(select_today_user_sql, (current_time))
+    today_users = cursor.fetchall()
+    cursor.execute(select_before_user_sql, (current_time))
+    before_users = cursor.fetchall()
 
     all_users = set()
     unique_user_count = 0
@@ -116,8 +113,8 @@ def aggregate_data(current_time):
         WHERE time >= %s
     '''
 
-    server_cursor.execute(select_user_behavior_sql, (current_time))
-    user_behavior = server_cursor.fetchone()
+    cursor.execute(select_user_behavior_sql, (current_time))
+    user_behavior = cursor.fetchone()
     print(user_behavior)
 
     update_analysis_sql = '''
@@ -132,13 +129,13 @@ def aggregate_data(current_time):
         add_to_cart_count = %s,
         checkout_count = %s
     '''
-    server_cursor.execute(update_analysis_sql, (
+    cursor.execute(update_analysis_sql, (
         current_time, unique_user_count, new_user_count, return_user_count,
         user_behavior['view_count'], user_behavior['view_item_count'], user_behavior['add_to_cart_count'], user_behavior['checkout_count'],
         unique_user_count, new_user_count, return_user_count,
         user_behavior['view_count'], user_behavior['view_item_count'], user_behavior['add_to_cart_count'], user_behavior['checkout_count']
     ))
-    server_conn.commit()
+    conn.commit()
 
 def main():
     last_time = datetime.utcnow() - timedelta(seconds=10)

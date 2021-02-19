@@ -7,18 +7,34 @@ import random
 import time
 from dotenv import load_dotenv
 import os
+from datetime import datetime
+from pymongo import MongoClient
 
 load_dotenv(verbose=True)
-db_host = os.environ.get('DB_SOURCE_HOST')
-db_user = os.environ.get('DB_SOURCE_USERNAME')
-db_password = os.environ.get('DB_SOURCE_PASSWORD')
-db_database = os.environ.get('DB_SOURCE_DATABASE')
+
+mongo_host = os.environ.get('MONGO_HOST')
+mongo_user = os.environ.get('MONGO_USERNAME')
+mongo_password = os.environ.get('MONGO_PASSWORD')
+mongo_database = os.environ.get('MONGO_DATABASE')
+
+mysql_host = os.environ.get('MYSQL_HOST')
+mysql_user = os.environ.get('MYSQL_USERNAME')
+mysql_password = os.environ.get('MYSQL_PASSWORD')
+mysql_database = os.environ.get('MYSQL_DATABASE')
+
+client = MongoClient(mongo_host,
+    username = mongo_user,
+    password = mongo_password,
+    authMechanism = 'SCRAM-SHA-1')
+db = client[mongo_database]
+collection = db['tracking_raw_realtime']
+# delete: db.tracking_raw_realtime.remove({})
 
 conn = pymysql.connect(
-    host = db_host,
-    user = db_user,
-    password = db_password,
-    database = db_database,
+    host = mysql_host,
+    user = mysql_user,
+    password = mysql_password,
+    database = mysql_database,
     cursorclass = pymysql.cursors.DictCursor
 )
 
@@ -57,6 +73,14 @@ def generate():
             (new_request_url)
         )
         conn.commit()
+
+        data = {
+            "request_url": new_request_url, 
+            "created_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        x = collection.insert_one(data)
+        print(x)
+
         time.sleep(random.randint(1,5))
 
 def main():
@@ -64,3 +88,9 @@ def main():
         generate()
 
 main()
+
+
+
+
+
+# print(datetime.utc_now())
