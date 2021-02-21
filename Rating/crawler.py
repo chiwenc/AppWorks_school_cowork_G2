@@ -4,13 +4,22 @@ import requests
 from bs4 import BeautifulSoup
 import threading
 from time import sleep
+import os
+from dotenv import load_dotenv
+
+load_dotenv(verbose=True)
+
+db_host = os.environ.get('DB_HOST')
+db_user = os.environ.get('DB_USERNAME')
+db_password = os.environ.get('DB_PASSWORD')
+db_database = os.environ.get('DB_DATABASE')
 
 conn = pymysql.connect(
-    host = 'localhost',
-    user = 'arthurlin',
-    password = '1234',
-    database = 'stylish_data_engineering',
-    cursorclass=pymysql.cursors.DictCursor
+    host = db_host,
+    user = db_user,
+    password = db_password,
+    database = db_database,
+    cursorclass = pymysql.cursors.DictCursor
 )
 
 HEADERS = {
