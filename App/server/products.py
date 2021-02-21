@@ -32,8 +32,6 @@ def get_products(page_size, paging, requirement = {}):
 
     product_query = 'SELECT * FROM product ' + condition["sql"] + limit["sql"]
     product_bindings = condition["binding"] + limit["binding"]
-    # print("product_query", product_query)
-    # print("product_bindings", product_bindings)
     cursor.execute(product_query, product_bindings)
     products = cursor.fetchall()
 
