@@ -13,6 +13,7 @@ load_dotenv(verbose=True)
 
 mongo_host = os.environ.get('MONGO_HOST')
 mongo_user = os.environ.get('MONGO_USERNAME')
+mongo_auth = os.environ.get('MONGO_AUTH_SOURCE')
 mongo_password = os.environ.get('MONGO_PASSWORD')
 mongo_database = os.environ.get('MONGO_DATABASE')
 
@@ -24,7 +25,7 @@ mysql_database = os.environ.get('MYSQL_DATABASE')
 client = MongoClient(mongo_host,
     username = mongo_user,
     password = mongo_password,
-    authSource = mongo_database,
+    authSource = mongo_auth,
     authMechanism = 'SCRAM-SHA-1')
 db = client[mongo_database]
 collection = db['tracking_raw_realtime']
