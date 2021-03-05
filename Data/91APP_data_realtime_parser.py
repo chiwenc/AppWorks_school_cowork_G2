@@ -80,27 +80,32 @@ def aggregate_data(current_time):
     cursor = conn.cursor()
     select_today_user_sql = "SELECT DISTINCT(client_id) FROM tracking_realtime WHERE time >= %s"
     select_before_user_sql = "SELECT DISTINCT(client_id) FROM tracking_realtime WHERE time < %s"
+    select_all_user_sql = "SELECT COUNT(DISTINCT(client_id)) AS count FROM tracking_realtime"
     cursor.execute(select_today_user_sql, (current_time))
     today_users = cursor.fetchall()
     cursor.execute(select_before_user_sql, (current_time))
     before_users = cursor.fetchall()
+    cursor.execute(select_all_user_sql)
+    all_users = cursor.fetchall()
 
-    all_users = set()
-    unique_user_count = 0
+    all_before_users = set()
+    all_user_count = int(all_users[0]['count'])
+    active_user_count = 0
     new_user_count = 0
     return_user_count = 0
 
     for user in before_users:
-        all_users.add(user['client_id'])
+        all_before_users.add(user['client_id'])
 
     for user in today_users:
-        unique_user_count += 1
-        if (user['client_id'] in all_users):
+        active_user_count += 1
+        if (user['client_id'] in all_before_users):
             return_user_count += 1
         else:
             new_user_count += 1
 
-    print('unique:', unique_user_count)
+    print('all:', all_user_count)
+    print('unique:', active_user_count)
     print('new:', new_user_count)
     print('return', return_user_count)
 
@@ -119,10 +124,11 @@ def aggregate_data(current_time):
     print(user_behavior)
 
     update_analysis_sql = '''
-        INSERT INTO tracking_analysis (`date`, unique_user_count, new_user_count, return_user_count, view_count, view_item_count, add_to_cart_count, checkout_count) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        INSERT INTO tracking_analysis (`date`, all_user_count, active_user_count, new_user_count, return_user_count, view_count, view_item_count, add_to_cart_count, checkout_count) 
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ON DUPLICATE KEY UPDATE
-        unique_user_count = %s,
+        all_user_count = %s,
+        active_user_count = %s,
         new_user_count = %s,
         return_user_count = %s,
         view_count = %s,
@@ -130,10 +136,12 @@ def aggregate_data(current_time):
         add_to_cart_count = %s,
         checkout_count = %s
     '''
+
     cursor.execute(update_analysis_sql, (
-        current_time, unique_user_count, new_user_count, return_user_count,
+        current_time,
+        all_user_count, active_user_count, new_user_count, return_user_count,
         user_behavior['view_count'], user_behavior['view_item_count'], user_behavior['add_to_cart_count'], user_behavior['checkout_count'],
-        unique_user_count, new_user_count, return_user_count,
+        all_user_count, active_user_count, new_user_count, return_user_count,
         user_behavior['view_count'], user_behavior['view_item_count'], user_behavior['add_to_cart_count'], user_behavior['checkout_count']
     ))
     conn.commit()
