@@ -1,6 +1,5 @@
 from flask import Flask
 from config import Config
-from flask_sqlalchemy import SQLAlchemy
 import os
 import pymysql
 from flask_jwt_extended import JWTManager
@@ -24,4 +23,4 @@ conn = pymysql.connect(
     cursorclass = pymysql.cursors.DictCursor
 )
 
-from server import routes
+from server.controllers import product_controller, user_controller

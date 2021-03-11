@@ -23,3 +23,16 @@ def create_user(provider, email, password, name, access_token, access_expire):
     cursor.execute(create_user_sql, [provider, email, password, name, access_token, access_expire])
     conn.commit()
     return cursor.lastrowid
+
+def get_user_behavior_by_date(date):
+    select_analysis_sql = """
+        SELECT *
+        FROM tracking_analysis
+        WHERE date = %s
+    """
+
+    cursor = conn.cursor()
+    cursor.execute(select_analysis_sql, date + ' 00:00:00')
+    data = cursor.fetchone()
+    conn.commit()
+    return data

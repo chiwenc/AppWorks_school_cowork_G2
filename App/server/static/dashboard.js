@@ -12,12 +12,11 @@ function draw_user_behavior_funnel(behavior_count) {
 function draw_user_statistic(user_count) {
     var data = [
         {
-            x: ['unique_user', 'new_user', 'return_user'],
+            x: ['all_user', 'active_user', 'new_user', 'return_user'],
             y: user_count,
             type: 'bar'
         }
     ];
-      
     Plotly.newPlot('user_statistic', data);
 }
 
