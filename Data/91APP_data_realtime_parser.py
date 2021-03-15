@@ -28,7 +28,7 @@ client = MongoClient(mongo_host,
     authSource = mongo_auth,
     authMechanism = 'SCRAM-SHA-1')
 db = client[mongo_database]
-collection = db['tracking_raw_realtime']
+collection = db.tracking_raw_realtime
 # delete: db.tracking_raw_realtime.remove({})
 
 conn = pymysql.connect(
@@ -114,7 +114,7 @@ def aggregate_data(current_time):
             SUM(CASE WHEN event_type = 'view' then 1 ELSE 0 END) as "view_count",
             SUM(CASE WHEN event_type = 'view_item' then 1 ELSE 0 END) as "view_item_count",
             SUM(CASE WHEN event_type = 'add_to_cart' then 1 ELSE 0 END) as "add_to_cart_count",
-            SUM(CASE WHEN (event_type = 'checkout_progress' AND checkout_step = '1') then 1 ELSE 0 END) as "checkout_count"
+            SUM(CASE WHEN (event_type = 'checkout_progress' AND checkout_step = '3') then 1 ELSE 0 END) as "checkout_count"
         FROM tracking_realtime
         WHERE time >= %s
     '''

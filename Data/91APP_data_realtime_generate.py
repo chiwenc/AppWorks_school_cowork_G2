@@ -68,15 +68,8 @@ def generate():
     cursor.execute(f'SELECT request_url FROM tracking_raw LIMIT {offset}, {limit}')
     rows = cursor.fetchall()
     for row in rows:
-        print('write:', row["request_url"])
+        print('write:', row["request_url"][:100])
         new_request_url = parse(row["request_url"])
-        cursor.execute(
-            "INSERT INTO tracking_raw_realtime (request_url) \
-              VALUES(%s)",
-            (new_request_url)
-        )
-        conn.commit()
-
         data = {
             "request_url": new_request_url, 
             "created_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
@@ -90,9 +83,3 @@ def main():
         generate()
 
 main()
-
-
-
-
-
-# print(datetime.utc_now())
