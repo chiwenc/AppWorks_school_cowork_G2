@@ -14,6 +14,7 @@ ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 def admin_product():
     return render_template('product_create.html')
 
+@app.route('/')
 @app.route('/admin/recommendation.html')
 def product_recommendation_page():
     res = get_products(100, 0, {"source": "amazon"},)
@@ -71,6 +72,7 @@ def get_products_with_detail(url_root, products):
             v["size"]
             for v in product_variants   
         ]))
+
         return product
 
     return [

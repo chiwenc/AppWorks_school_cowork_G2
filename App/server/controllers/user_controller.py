@@ -24,7 +24,6 @@ def signup_page():
 def profile_page():
     return render_template('profile.html', last_updated=dir_last_updated('server/static'))
 
-@app.route('/')
 @app.route('/user_dashboard.html')
 def dashboard():
     return render_template('dashboard.html', last_updated=dir_last_updated('server/static'))

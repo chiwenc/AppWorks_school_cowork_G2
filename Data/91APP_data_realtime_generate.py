@@ -22,7 +22,7 @@ mysql_host = os.environ.get('MYSQL_HOST')
 mysql_user = os.environ.get('MYSQL_USERNAME')
 mysql_password = os.environ.get('MYSQL_PASSWORD')
 mysql_database = os.environ.get('MYSQL_DATABASE')
-print(mongo_user)
+
 client = MongoClient(mongo_host,
     username = mongo_user,
     password = mongo_password,
@@ -30,7 +30,7 @@ client = MongoClient(mongo_host,
     authMechanism = 'SCRAM-SHA-1'
 )
 db = client[mongo_database]
-collection = db['tracking_raw_realtime']
+collection = db.tracking_raw_realtime
 # delete: db.tracking_raw_realtime.remove({})
 
 conn = pymysql.connect(
@@ -81,8 +81,7 @@ def generate():
             "request_url": new_request_url, 
             "created_at": datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
         }
-        x = collection.insert_one(data)
-        print(x)
+        collection.insert_one(data)
 
         time.sleep(random.randint(1,5))
 
