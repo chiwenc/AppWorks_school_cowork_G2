@@ -10,10 +10,11 @@ function draw_user_behavior_funnel(behavior_count) {
 }
 
 function draw_user_statistic(user_count) {
+    document.getElementById('all_user_count').innerText = user_count[0]
     var data = [
         {
-            x: ['all_user', 'active_user', 'new_user', 'return_user'],
-            y: user_count,
+            x: ['active_user', 'new_user', 'return_user'],
+            y: [user_count[1], user_count[2], user_count[3]],
             type: 'bar'
         }
     ];

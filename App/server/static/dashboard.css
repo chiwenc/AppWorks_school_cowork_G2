@@ -1,3 +1,11 @@
+#all_user {
+    display: flex;
+}
+
+.user_count {
+    margin: 10px;
+}
+
 .left {
     float: left;
     width: 50%;

@@ -12,19 +12,19 @@ def get_hashed_password(plain_text_password):
 def check_password(plain_text_password, hashed_password):
     return bcrypt.checkpw(plain_text_password.encode('utf8'), hashed_password.encode('utf8'))
 
-@app.route('/signin.html', methods=['GET'])
+@app.route('/signin', methods=['GET'])
 def signin_page():
     return render_template('signin.html', last_updated=dir_last_updated('server/static'))
 
-@app.route('/signup.html', methods=['GET'])
+@app.route('/signup', methods=['GET'])
 def signup_page():
     return render_template('signup.html', last_updated=dir_last_updated('server/static'))
 
-@app.route('/profile.html', methods=['GET'])
+@app.route('/profile', methods=['GET'])
 def profile_page():
     return render_template('profile.html', last_updated=dir_last_updated('server/static'))
 
-@app.route('/dashboard.html')
+@app.route('/dashboard')
 def dashboard():
     return render_template('dashboard.html', last_updated=dir_last_updated('server/static'))
 
