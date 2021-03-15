@@ -86,3 +86,6 @@ midterm
 
 # python
 __pycache__
+
+# nohup
+nohup.*
