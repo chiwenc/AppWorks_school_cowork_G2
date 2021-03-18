@@ -44,6 +44,7 @@ def get_products_with_detail(url_root, products):
         variants_map[variant["product_id"]].append(variant)
 
     def parse(product, variants_map):
+        print(product)
         product_id = product["id"]
         image_path = url_root + 'static/assets/' + str(product_id) + '/'
         product["main_image"] = image_path + product["main_image"]
@@ -81,40 +82,48 @@ def get_products_with_detail(url_root, products):
 
 @app.route('/api/1.0/products/<category>', methods=['GET'])
 def api_get_products(category):
-    paging = request.values.get('paging') or 0
-    paging = int(paging)
-    res = find_product(category, paging)
+    p = get_products(0,0)
+    return p
+    # paging = request.values.get('paging') or 0
+    # paging = int(paging)
+    # res = find_product(category, paging)
 
-    if (not res):
-        return {"error":'Wrong Request'}
+    # if (not res):
+    #     return {"error":'Wrong Request'}
 
-    products = res.get("products")
-    product_count = res.get("product_count")
+    # print('============')
+    # print(res)
+    # print(res.keys())
 
-    if (not products):
-        return {"error":'Wrong Request'}
+    # products = res.get("products")
+    # print(products)
+    # print(products.keys())
+    # product_count = res.get("product_count")
+
+    # if (not products):
+    #     return {"error":'Wrong Request'}
     
-    if (not len(products)):
-        if (category == 'details'):
-            return {"data": None}
-        else:
-            return {"data": []}
+    # if (not len(products)):
+    #     if (category == 'details'):
+    #         return {"data": None}
+    #     else:
+    #         return {"data": []}
 
-    products_with_detail = \
-        get_products_with_detail(request.url_root, products) if products[0]["source"] == 'native' else products
-    if (category == 'details'):
-        products_with_detail = products_with_detail[0]
+    # products_with_detail = \
+    #     get_products_with_detail(request.url_root, products) if products[0]["source"] == 'native' else products
+    # if (category == 'details'):
+    #     products_with_detail = products_with_detail[0]
 
-    result = {}
-    if (product_count > (paging + 1) * PAGE_SIZE):
-        result = {
-            "data": products_with_detail,
-            "next_paging": paging + 1
-        } 
-    else: 
-        result = {"data": products_with_detail}
+    # result = {}
+    # if (product_count > (paging + 1) * PAGE_SIZE):
+    #     result = {
+    #         "data": products_with_detail,
+    #         "next_paging": paging + 1
+    #     } 
+    # else: 
+    #     result = {"data": products_with_detail}
     
-    return result
+    # return result
 
 def allowed_file(filename):
     return '.' in filename and \

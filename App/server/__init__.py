@@ -1,13 +1,17 @@
 from flask import Flask
+from flask_migrate import Migrate
+from flask_sqlalchemy import SQLAlchemy
 from config import Config
 import os
 import pymysql
 from flask_jwt_extended import JWTManager
 from waitress import serve
 
+
 app = Flask(__name__)
 app.config.from_object(Config)
-
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
 jwt = JWTManager()
 jwt.init_app(app)
