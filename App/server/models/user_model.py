@@ -1,38 +1,31 @@
-from server import conn
+from server import db
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    provider = db.Column(db.String(15), nullable=False)
+    email = db.Column(db.String(255), index=True, unique=True, nullable=False)
+    password = db.Column(db.String(255))
+    username = db.Column(db.String(127), nullable=False)
+    picture = db.Column(db.String(255))
+    access_token = db.Column(db.Text(), nullable=False)
+    access_expire = db.Column(db.BigInteger(), nullable=False)
+    login_at = db.Column(db.TIMESTAMP())
+
+    def __init__(self, model_dict):
+        self.__dict__.update(model_dict)
+
+    def __repr__(self):
+        return '<User {}, {}, {}>'.format(self.id, self.username, self.email)
 
 def get_user(email):
-    select_user_sql = """
-        SELECT *
-        FROM user
-        WHERE email = %s
-    """
+    user = User.query.filter_by(email = email).all()
+    if user:
+        return user[0].to_json()
+    else:
+        return None
 
-    cursor = conn.cursor()
-    cursor.execute(select_user_sql, [email])
-    user = cursor.fetchone()
-    conn.commit()
-    return user
-
-def create_user(provider, email, password, name, access_token, access_expire):
-    create_user_sql = """
-        INSERT INTO user (provider, email, password, name, access_token, access_expired)
-        VALUES(%s, %s, %s, %s, %s, %s)
-    """
-
-    cursor = conn.cursor()
-    cursor.execute(create_user_sql, [provider, email, password, name, access_token, access_expire])
-    conn.commit()
-    return cursor.lastrowid
-
-def get_user_behavior_by_date(date):
-    select_analysis_sql = """
-        SELECT *
-        FROM tracking_analysis
-        WHERE date = %s
-    """
-
-    cursor = conn.cursor()
-    cursor.execute(select_analysis_sql, date + ' 00:00:00')
-    data = cursor.fetchone()
-    conn.commit()
-    return data
+def create_user(user):
+    new_user = User(user)
+    db.session.add(new_user)
+    db.session.commit()
+    return new_user.id

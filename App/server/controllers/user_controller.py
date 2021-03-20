@@ -3,7 +3,8 @@ from flask import url_for, request, jsonify, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 import os
 from server import app
-from server.models.user_model import get_user, create_user, get_user_behavior_by_date
+from server.models.user_model import get_user, create_user
+from server.models.tracking_model import get_user_behavior_by_date
 from server.utils.util import dir_last_updated
 
 def get_hashed_password(plain_text_password):
@@ -41,14 +42,14 @@ def api_signin():
     if not check_password(password, user["password"]):
         return jsonify({"error": "Bad password"}), 401
 
-    access_token = create_access_token(identity=user["name"])
+    access_token = create_access_token(identity=user["username"])
     return {
         "access_token": access_token,
         "access_expired": 3600,
         "user": {
             "id": user["id"],
             "rovider": 'native',
-            "name": user["name"],
+            "name": user["username"],
             "email": email,
             "picture": ""
         }
@@ -65,9 +66,17 @@ def api_signup():
     user = get_user(email)
     if user:
         return jsonify({"error": "User already existed"}), 401
-
+    
     access_token = create_access_token(identity=name)
-    user_id = create_user('native', email, encrypted_password, name, access_token, 2592000)
+    user_id = create_user({
+        "provider": 'native',
+        "email": email,
+        "password": encrypted_password,
+        "username": name,
+        "picture": None,
+        "access_token": access_token,
+        "access_expire": 2592000
+    })
     return {
         "access_token": access_token,
         "access_expired": 3600,

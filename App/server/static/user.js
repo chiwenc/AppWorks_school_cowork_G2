@@ -13,7 +13,7 @@ if (signinForm) {
             console.log(data);
             const localStorage = window.localStorage;
             localStorage.setItem('access_token', data.access_token);
-            window.location.href = "/profile.html";
+            window.location.href = "/profile";
         }, "json");
     });
 }
@@ -30,7 +30,7 @@ if (signupForm) {
         $.post("/api/1.0/signup", {name: data.name, email: data.email, password: data.password}, function(data) {
             const localStorage = window.localStorage;
             localStorage.setItem('access_token', data.access_token);
-            window.location.href = "/profile.html";
+            window.location.href = "/profile";
         }, "json");
     });
 }

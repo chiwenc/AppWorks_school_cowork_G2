@@ -1,99 +1,82 @@
+from dataclasses import dataclass
+from flask import Flask, jsonify
+import json
 from server import db
 import random
-from sqlalchemy.orm import Session
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import ForeignKey
+from server.models.recommendation_model import SimilarityModel
 
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    username = db.Column(db.String(64), index=True, unique=True)
-    email = db.Column(db.String(120), index=True, unique=True)
-    password = db.Column(db.String(128))
-    picture = db.Column(db.String(512))
+class Product(db.Model):
+    id = db.Column(db.String(200), primary_key=True)
+    category = db.Column(db.String(127), index=True)
+    title = db.Column(db.String(255), index=True)
+    description = db.Column(db.String(255))
+    price = db.Column(db.Integer)
+    texture = db.Column(db.String(127))
+    wash = db.Column(db.String(127))
+    place = db.Column(db.String(127))
+    note = db.Column(db.String(127))
+    story = db.Column(db.Text())
+    main_image = db.Column(db.String(255))
+    images = db.Column(db.String(255))
+    source = db.Column(db.String(127))
+    image_base64 = db.Column(db.Text())
+
+    def __init__(self, model_dict):
+        self.__dict__.update(model_dict)
 
     def __repr__(self):
-        return '<User {}>'.format(self.username)
+        return '<Product {}, {}, {}>'.format(self.id, self.category, self.title)
 
+class Variant(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    color_code = db.Column(db.String(15))
+    color_name = db.Column(db.String(15))
+    size = db.Column(db.String(15))
+    stock = db.Column(db.Integer)
+    product_id = db.Column(db.String(200), db.ForeignKey('product.id'))
+
+    def __init__(self, model_dict):
+        self.__dict__.update(model_dict)
+
+    def __repr__(self):
+        return '<Variant {}>'.format(self.id)
                         
 def get_products(page_size, paging, requirement = {}):
-
-    u = User(username='susan', email='susan@example.com')
-    print(u)
-    # print("Get product")
-
-    # cursor = db.engine.execute('SELECT * FROM product WHERE source = "native" AND category = %s LIMIT 2', ["men"])
-    # print(cursor)
-    # print(cursor.keys())
-    # print(cursor.fetchall())
-
-    return "YA"
-    # condition = {"sql": 'WHERE source = "native"', "binding": []}
-    # if ("category" in requirement):
-    #     condition["sql"] = 'WHERE category = %s AND source = "native"'
-    #     condition["binding"] = [requirement.get("category")]
-    # elif ("keyword" in requirement):
-    #     condition["sql"] = 'WHERE title LIKE %s AND source = "native"'
-    #     condition["binding"] = [f"%{requirement.get('keyword')}%"]
-    # elif ("id" in requirement):
-    #     condition["sql"] = 'WHERE id = %s'
-    #     condition["binding"] = [requirement.get("id")]
-    # elif ("source" in requirement):
-    #     condition["sql"] = 'WHERE source = %s'
-    #     condition["binding"] = [requirement.get("source")]
-    # elif ("recommend" in requirement):
-    #     condition["sql"] = ' \
-    #         INNER JOIN similarity_model ON product.id = similarity_model.item2_id \
-    #         WHERE similarity_model.item1_id = %s \
-    #         ORDER BY similarity DESC \
-    #     '
-    #     condition["binding"] = [requirement.get("recommend")]
-
-    # limit = {
-    #     'sql': 'LIMIT %s, %s',
-    #     'binding': [page_size * paging, page_size]
-    # }
-
-    # product_query = 'SELECT * FROM product ' + condition["sql"] + limit["sql"]
-    # product_bindings = condition["binding"] + limit["binding"]
-    # cursor = db.engine.execute(product_query, product_bindings)
-    # products = cursor.fetchall()
-
-    # product_count_query = 'SELECT COUNT(*) as count FROM product ' + condition["sql"]
-    # product_count_bindings = condition["binding"]
-    # cursor = db.engine.execute(product_count_query, product_count_bindings)
-    # product_count = cursor.fetchone()["count"]
-
-    # return {
-    #     "products": products,
-    #     "product_count": product_count
-    # }
+    product_query = None
+    if ("category" in requirement):
+        category = requirement.get("category")
+        if (category == 'all'):
+            product_query = Product.query.filter_by(source = 'native')
+        else:
+            product_query = Product.query.filter_by(source = 'native', category = category)
+    elif ("keyword" in requirement):
+        product_query = Product.query.filter_by(source = 'native').filter(Product.title.like(f"%{requirement.get('keyword')}%"))
+    elif ("id" in requirement):
+        product_query = Product.query.filter_by(id = requirement.get("id"))
+    elif ("source" in requirement):
+        product_query = Product.query.filter_by(source = requirement.get("source"))
+    elif ("recommend" in requirement):
+        product_query = Product.query.join(SimilarityModel, Product.id == SimilarityModel.item2_id)\
+            .filter_by(item1_id = requirement.get("recommend"))\
+            .order_by(SimilarityModel.similarity.desc())
+        
+    products = product_query.limit(page_size).offset(page_size * paging).all()
+    count = product_query.count()
+    return {
+        "products": [p.to_json() for p in products],
+        "product_count": count
+    }
 
 def get_products_variants(product_ids):
-    # cursor = conn.cursor()
-    query = f"SELECT * FROM variant WHERE product_id IN ({','.join([str(id) for id in product_ids])})"
-    cursor = db.engine.execute(query)
-    variants = cursor.fetchall()
-    # conn.commit()
-    return variants
+    variants = Variant.query.filter(Product.id.in_(product_ids)).all()
+    return [v.to_json() for v in variants]
 
 def create_product(product, variants):
-    cursor = conn.cursor()
-    columns = ','.join([f"`{key}`" for key in product.keys()])
-    bindings = ','.join(['%s' for i in range(len(product))])
-    insert_product_sql = f" \
-        INSERT INTO product ( \
-            {columns} \
-        ) VALUES ( \
-            {bindings} \
-        ) \
-    "
-    cursor.execute(insert_product_sql, list(product.values()))
+    product_model = Product(product)
+    db.session.add(product_model)
+    db.session.flush()
 
-    columns = ','.join([f"`{key}`" for key in variants[0].keys()])
-    bindings = ','.join(['%s' for i in range(len(variants[0]))])
-    insert_variant_sql = f" \
-        INSERT INTO variant ({columns}) \
-        VALUES({bindings}) \
-    "
-    cursor.executemany(insert_variant_sql, [list(v.values()) for v in variants])
-
-    conn.commit()  
+    variants_models = [Variant(v) for v in variants]
+    db.session.bulk_save_objects(variants_models)
+    db.session.commit()
