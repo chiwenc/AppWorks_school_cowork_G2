@@ -15,7 +15,7 @@ class BaseModel(Model):
 
 app = Flask(__name__)
 app.config.from_object(Config)
-db = SQLAlchemy(app, model_class=BaseModel)
+db = SQLAlchemy(app, model_class = BaseModel)
 migrate = Migrate(app, db)
 
 jwt = JWTManager()
