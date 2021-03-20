@@ -28,4 +28,7 @@ class TrackingRealtime(db.Model):
 
 def get_user_behavior_by_date(date):
     analysis = TrackingAnalysis.query.filter_by(date = date + ' 00:00:00').all()
-    return analysis[0].to_json()
+    if analysis:
+        return analysis[0].to_json()
+    else:
+        return None
