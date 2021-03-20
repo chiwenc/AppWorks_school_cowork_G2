@@ -44,7 +44,6 @@ def get_products_with_detail(url_root, products):
         variants_map[variant["product_id"]].append(variant)
 
     def parse(product, variants_map):
-        print(product)
         product_id = product["id"]
         image_path = url_root + 'static/assets/' + str(product_id) + '/'
         product["main_image"] = image_path + product["main_image"]

@@ -93,7 +93,6 @@ def api_signup():
 @jwt_required()
 def api_get_user_profile():
     current_user = get_jwt_identity()
-    print(current_user)
     return f"Welcome! {current_user}"
 
 @app.route('/api/1.0/user/behavior/<date>')
