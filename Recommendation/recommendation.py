@@ -10,6 +10,8 @@ from numpy import dot
 from numpy.linalg import norm
 from math import acos, pi
 import os
+# from scipy.spatial import distance
+import time
 
 load_dotenv(verbose=True)
 random.seed(datetime.utcnow())
@@ -40,6 +42,8 @@ item_mapping = {} # {1: B00008695M}
 user_inverse_mapping = {} # {A2GRC67Y818A5B: 1}
 item_inverse_mapping = {} # {B00008695M: 1}
 
+start_time = time.time()
+
 def get_rating_data(limit):
     valid_count_threshold = 7
     cursor = conn.cursor()
@@ -65,6 +69,7 @@ def insert_similarity(similarities):
     conn.commit()
 
 all_rating_data = get_rating_data(None)
+print("got data: ", time.time() - start_time)
 
 for row in all_rating_data:
     user_id = row["user_id"]
@@ -94,6 +99,8 @@ for row in all_rating_data:
     item_users[item_index].add(user_index)
     user_item_rating[(user_index, item_index)] = row["rating"]
 
+print("built hash tables: ", time.time() - start_time)
+
 # normalize
 for user_index in range(len(users_set)):
     rating_sum = sum([user_item_rating[(user_index, item_index)] for item_index in user_items[user_index]])
@@ -101,6 +108,8 @@ for user_index in range(len(users_set)):
     rating_avg = round(rating_sum / rating_count, 3)
     for item_index in user_items[user_index]:
         user_item_rating[(user_index, item_index)] = rating_avg
+
+print("normalized: ", time.time() - start_time)
 
 count = 0
 batch_size = 10000
@@ -122,7 +131,7 @@ for item_index in range(len(items_set)):
           user_item_rating.get((user_index, compare_item_index)) or 0
           for user_index in rating_users
         ]
-        cos_sim = round(dot(vector, compare_vector)/(norm(vector) * norm(compare_vector)), 3)
+        cos_sim = round(sum([x * y for x, y in zip(vector, compare_vector)]) / ((sum([x*x for x in vector])**0.5) * (sum([x * x for x in compare_vector])**0.5)), 4)
         similarity = round(1 - (acos(cos_sim) / pi), 4)
 
         similarities.append((
@@ -134,3 +143,5 @@ for item_index in range(len(items_set)):
         insert_similarity(similarities)
         count = 0
         similarities = []
+
+print("finished building model: ", time.time() - start_time)
