@@ -79,7 +79,7 @@ def generate():
         time.sleep(random.randint(1,5))
 
 def main():
-    for i in range(1,100):
+    while True:
         generate()
 
 main()
