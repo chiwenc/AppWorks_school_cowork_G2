@@ -10,7 +10,6 @@ from numpy.linalg import norm
 from math import acos, pi
 import os
 import numpy as np
-
 from time import time;
 
 BATCH_SIZE = 50000
