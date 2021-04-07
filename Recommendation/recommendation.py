@@ -14,7 +14,7 @@ from time import time;
 
 BATCH_SIZE = 50000
 RATING_TABLE = "rating"
-SIMILARITY_TABLE = "similarity_model_4"
+SIMILARITY_TABLE = "similarity_model"
 VALID_COUNT_THRESHOLD = 0
 
 load_dotenv(verbose=True)
