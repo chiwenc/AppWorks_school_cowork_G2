@@ -31,7 +31,7 @@ cookies = {'enwiki_session': '17ab96bd8ffbe8ca58a78657a918558'}
 def get_items():
     cursor = conn.cursor()
     cursor.execute(
-        "SELECT DISTINCT(item1_id) AS item_id FROM similarity_model LIMIT 6"
+        "SELECT DISTINCT(item1_id) AS item_id FROM similarity_model LIMIT 3000, 12"
     )
     conn.commit()
     return cursor.fetchall()
@@ -44,11 +44,11 @@ def get_similar_items(item_id):
     conn.commit()
     return cursor.fetchall()
 
-def insert_product(item_id, title, image):
+def insert_product(item_id, title, source, image):
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO amazon_product (id, title, image_base64) VALUES(%s, %s, %s)",
-        (item_id, title, image)
+        "INSERT INTO product (id, title, source, image_base64) VALUES(%s, %s, %s, %s)",
+        (item_id, title, source, image)
     )
     conn.commit()
 
@@ -61,7 +61,7 @@ def fetch_data(item_id):
         soup = BeautifulSoup(web_content, 'html.parser')
         title = soup.find('span', id="productTitle").text.strip()
         image = soup.find('div', id="main-image-container").find('img').get('src').strip()
-        insert_product(item_id, title, image)
+        insert_product(item_id, title, 'amazon', image)
         print("OK")
     except Exception as e:
         print("ERROR:", url, e)

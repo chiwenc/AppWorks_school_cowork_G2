@@ -5,14 +5,20 @@ import pymysql.cursors
 from urllib.parse import unquote
 from collections import defaultdict
 from datetime import datetime, timedelta
-import random
 from numpy import dot
 from numpy.linalg import norm
 from math import acos, pi
 import os
+import numpy as np
+
+from time import time;
+
+BATCH_SIZE = 50000
+RATING_TABLE = "rating"
+SIMILARITY_TABLE = "similarity_model_4"
+VALID_COUNT_THRESHOLD = 0
 
 load_dotenv(verbose=True)
-random.seed(datetime.utcnow())
 
 db_host = os.environ.get('DB_HOST')
 db_user = os.environ.get('DB_USERNAME')
@@ -30,25 +36,29 @@ conn = pymysql.connect(
 # user: 39387
 # item: 23033
 
-user_items = defaultdict(set) # {user1_index: [item1_index, item2_index, ...]}
-item_users = defaultdict(set) # {item1_index: [user1_index, user2_index, ...]}
-user_item_rating = {} # {(user_id, item_id): rating}
-users_set = set() # {user1, user2, ...}
-items_set = set() # {item1, item2, ...}
-user_mapping = {} # {1: A2GRC67Y818A5B}
-item_mapping = {} # {1: B00008695M}
-user_inverse_mapping = {} # {A2GRC67Y818A5B: 1}
-item_inverse_mapping = {} # {B00008695M: 1}
-
-def get_rating_data(limit):
-    valid_count_threshold = 7
+def insert_similarity(similarities):
     cursor = conn.cursor()
-    query = f"SELECT * FROM rating \
+    cursor.executemany(
+        f"INSERT INTO {SIMILARITY_TABLE} (item1_id, item2_id, similarity) VALUES(%s, %s, %s)",
+        similarities
+    )
+    conn.commit()
+
+def get_rating_data_from_file():
+    csvfile = open('Clothing_Shoes_and_Jewelry_sample.csv')
+    rows = csv.DictReader(csvfile)
+    return rows
+
+def get_rating_data_from_db(limit = None):
+    cursor = conn.cursor()
+    cursor.execute(f"TRUNCATE TABLE {SIMILARITY_TABLE}")
+
+    query = f"SELECT * FROM {RATING_TABLE} \
         WHERE user_id IN \
             ( SELECT user_id \
-                FROM rating \
+                FROM {RATING_TABLE} \
                 GROUP BY user_id \
-                HAVING COUNT(user_id) >= {valid_count_threshold} \
+                HAVING COUNT(user_id) >= {VALID_COUNT_THRESHOLD} \
             )"
     if (limit):
         query += f" ORDER BY user_id LIMIT {limit}"
@@ -56,81 +66,72 @@ def get_rating_data(limit):
     conn.commit()
     return cursor.fetchall()
 
-def insert_similarity(similarities):
-    cursor = conn.cursor()
-    cursor.executemany(
-        "INSERT INTO similarity_model (item1_id, item2_id, similarity) VALUES(%s, %s, %s)",
-        similarities
-    )
-    conn.commit()
+def group_by_user(all_rating_data):
+    user_items = defaultdict(list)
+    for rating_data in all_rating_data:
+        user = rating_data['user_id']
+        item = rating_data['item_id']
+        rating = rating_data['rating']
+        user_items[user].append((item, float(rating)))
+    return user_items
 
-all_rating_data = get_rating_data(None)
+def normalize(user_items):
+    normalized_user_items = defaultdict(list)
+    for user, items in user_items.items():
+        rating_sum = sum([item[1] for item in items])
+        rating_count = len(items)
+        rating_avg = rating_sum / rating_count
+        for item in items:
+            normalized_user_items[user].append((item[0], item[1] - rating_avg))
+    return normalized_user_items
 
-for row in all_rating_data:
-    user_id = row["user_id"]
-    users_set.add(user_id)
-    item_id = row["item_id"]
-    items_set.add(item_id)
+def group_by_item_pair(normalized_user_items):
+    item_pair_ratings = defaultdict(list)
+    for user, items in normalized_user_items.items():
+        for item_rating1 in items:
+            for item_rating2 in items:
+                if (item_rating1[0] != item_rating2[0]):
+                    item_pair_ratings[(item_rating1[0], item_rating2[0])].append((item_rating1[1], item_rating2[1]))
+    return item_pair_ratings
 
-index = 0
-for user_id in users_set:
-    user_mapping[user_id] = index
-    user_inverse_mapping[index] = user_id
-    index += 1
+def calculate_similarity(item_pair_ratings):
+    item_pair_similarities = []
+    for item_pair, rating_pairs in item_pair_ratings.items():
+        if (len(rating_pairs) < 2):
+            continue
+        v1 = []
+        v2 = []
+        for rating_pair in rating_pairs:
+            v1.append(rating_pair[0])
+            v2.append(rating_pair[1])
+        denominator = (sum([x*x for x in v1])**0.5) * (sum([x * x for x in v2])**0.5)
+        if (denominator > 0):
+            cos_sim = round(sum([x * y for x, y in zip(v1, v2)]) / denominator, 4)
+            similarity = round(1 - (acos(cos_sim) / pi), 4)
+            item_pair_similarities.append((
+                item_pair[0],
+                item_pair[1],
+                float(similarity)
+            ))
+    return item_pair_similarities
 
-index = 0
-for item_id in items_set:
-    item_mapping[item_id] = index
-    item_inverse_mapping[index] = item_id
-    index += 1
-
-for row in all_rating_data:
-    user_id = row["user_id"]
-    user_index = user_mapping[user_id]
-    item_id = row["item_id"]
-    item_index = item_mapping[item_id]
-
-    user_items[user_index].add(item_index)
-    item_users[item_index].add(user_index)
-    user_item_rating[(user_index, item_index)] = row["rating"]
-
-# normalize
-for user_index in range(len(users_set)):
-    rating_sum = sum([user_item_rating[(user_index, item_index)] for item_index in user_items[user_index]])
-    rating_count = len(user_items[user_index])
-    rating_avg = round(rating_sum / rating_count, 3)
-    for item_index in user_items[user_index]:
-        user_item_rating[(user_index, item_index)] = rating_avg
-
-count = 0
-batch_size = 10000
-similarities = []
-
-for item_index in range(len(items_set)):
-    rating_users = list(item_users[item_index])
-    vector = [user_item_rating[(user_index, item_index)] for user_index in rating_users]
-
-    compare_items = set()
-    for user_index in item_users[item_index]:
-        for compare_item_index in user_items[user_index]:
-            if compare_item_index != item_index:
-                compare_items.add(compare_item_index)
-
-    for compare_item_index in compare_items:
-        count += 1
-        compare_vector = [
-          user_item_rating.get((user_index, compare_item_index)) or 0
-          for user_index in rating_users
-        ]
-        cos_sim = round(dot(vector, compare_vector)/(norm(vector) * norm(compare_vector)), 3)
-        similarity = round(1 - (acos(cos_sim) / pi), 4)
-
-        similarities.append((
-            item_inverse_mapping[item_index],
-            item_inverse_mapping[compare_item_index],
-            similarity
-        ))
-    if (count >= batch_size):
+def batch_insert(item_pair_similarities, batch_size):
+    similarity_batch = np.array_split(np.array(item_pair_similarities, dtype="object"), len(item_pair_similarities) // batch_size)
+    for similarities in similarity_batch:
+        similarities = [tuple(s) for s in similarities]
         insert_similarity(similarities)
-        count = 0
-        similarities = []
+
+def main():
+    start_time = time()
+
+    all_rating_data = get_rating_data_from_db()
+    user_items = group_by_user(all_rating_data)
+    normalized_user_items = normalize(user_items)
+    item_pair_ratings = group_by_item_pair(normalized_user_items)
+    item_pair_similarities = calculate_similarity(item_pair_ratings)
+    batch_insert(item_pair_similarities, BATCH_SIZE)
+
+    print("Spend Time:", time() - start_time)
+
+if __name__ == "__main__":
+    main()
