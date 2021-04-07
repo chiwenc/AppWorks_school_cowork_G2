@@ -8,6 +8,7 @@ class Config(object):
     UPLOAD_FOLDER = "/static/assets"
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024  # 16MB
     JSON_AS_ASCII = False
+    JSONIFY_PRETTYPRINT_REGULAR = True
 
     # JWT token
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or "test"
