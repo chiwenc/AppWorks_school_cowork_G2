@@ -73,4 +73,5 @@ def main():
     read_from_file()
     # read_from_s3()
 
-main()
+if __name__ == "__main__":
+    main()
