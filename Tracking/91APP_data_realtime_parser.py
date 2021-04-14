@@ -148,7 +148,7 @@ def aggregate_data(current_time):
 
 def main():
     last_time = datetime.utcnow() - timedelta(seconds=10)
-    for i in range(1,100):
+    while(True):
         current_time = datetime.utcnow() - timedelta(seconds=10)
         clean_data(last_time, current_time)
         aggregate_data(current_time)
