@@ -1,7 +1,6 @@
 import bcrypt
-from flask import url_for, request, jsonify, render_template
+from flask import request, jsonify, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-import os
 from server import app
 from server.models.user_model import get_user, create_user
 from server.models.tracking_model import get_user_behavior_by_date
@@ -62,20 +61,18 @@ def api_signup():
     email = form.get('email', None) 
     password = form.get('password', None)
     encrypted_password = get_hashed_password(password)
-
     user = get_user(email)
     if user:
         return jsonify({"error": "User already existed"}), 401
-    
     access_token = create_access_token(identity=name)
     user_id = create_user({
         "provider": 'native',
         "email": email,
         "password": encrypted_password,
-        "username": name,
+        "name": name,
         "picture": None,
         "access_token": access_token,
-        "access_expire": 2592000
+        "access_expired": 2592000
     })
     return {
         "access_token": access_token,

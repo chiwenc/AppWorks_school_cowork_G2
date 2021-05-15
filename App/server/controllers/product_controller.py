@@ -1,10 +1,9 @@
 from collections import defaultdict
-from flask import url_for, request, jsonify, render_template
+from flask import request, render_template
 import os
 import random
 from server import app
 from server.models.product_model import get_products, get_products_variants, create_product
-from werkzeug.urls import url_parse
 from werkzeug.utils import secure_filename
 
 PAGE_SIZE = 6

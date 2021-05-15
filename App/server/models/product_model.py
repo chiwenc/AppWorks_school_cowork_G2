@@ -1,8 +1,6 @@
 from dataclasses import dataclass
-from flask import Flask, jsonify
-import json
+from flask import jsonify
 from server import db
-import random
 from sqlalchemy import ForeignKey
 from server.models.recommendation_model import SimilarityModel
 
@@ -22,9 +20,6 @@ class Product(db.Model):
     source = db.Column(db.String(127))
     image_base64 = db.Column(db.Text())
 
-    def __init__(self, model_dict):
-        self.__dict__.update(model_dict)
-
     def __repr__(self):
         return '<Product {}, {}, {}>'.format(self.id, self.category, self.title)
 
@@ -36,12 +31,9 @@ class Variant(db.Model):
     stock = db.Column(db.Integer)
     product_id = db.Column(db.String(200), db.ForeignKey('product.id'))
 
-    def __init__(self, model_dict):
-        self.__dict__.update(model_dict)
-
     def __repr__(self):
         return '<Variant {}>'.format(self.id)
-                        
+
 def get_products(page_size, paging, requirement = {}):
     product_query = None
     if ("category" in requirement):
@@ -73,10 +65,15 @@ def get_products_variants(product_ids):
     return [v.to_json() for v in variants]
 
 def create_product(product, variants):
-    product_model = Product(product)
-    db.session.add(product_model)
-    db.session.flush()
+    try:
+        product_model = Product(**product)
+        db.session.add(product_model)
+        db.session.flush()
 
-    variants_models = [Variant(v) for v in variants]
-    db.session.bulk_save_objects(variants_models)
-    db.session.commit()
+        db.session.bulk_insert_mappings(
+            Variant,
+            variants
+        )
+        db.session.commit()
+    except Exception as e:
+        print(e)

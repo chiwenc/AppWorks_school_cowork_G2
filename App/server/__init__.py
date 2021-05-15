@@ -2,12 +2,9 @@ from flask import Flask
 from flask_migrate import Migrate
 from flask_sqlalchemy import Model, SQLAlchemy
 from config import Config
-import os
-import pymysql
 from flask_jwt_extended import JWTManager
 from waitress import serve
 from werkzeug.exceptions import HTTPException
-from sqlalchemy.ext.declarative import declared_attr, has_inherited_table
 
 class BaseModel(Model):
     def to_json(self):
