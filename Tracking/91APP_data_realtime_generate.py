@@ -68,6 +68,7 @@ def generate():
     cursor.execute(f'SELECT request_url FROM tracking_raw LIMIT {offset}, {limit}')
     rows = cursor.fetchall()
     for row in rows:
+        print('write:', row["request_url"][:100])
         new_request_url = parse(row["request_url"])
         data = {
             "request_url": new_request_url, 
