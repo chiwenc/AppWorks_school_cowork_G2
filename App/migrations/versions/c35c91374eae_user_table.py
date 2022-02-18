@@ -23,11 +23,10 @@ def upgrade():
     sa.Column('provider', sa.String(length=15), nullable=False),
     sa.Column('email', sa.String(length=255), nullable=False),
     sa.Column('password', sa.String(length=255), nullable=True),
-    sa.Column('username', sa.String(length=127), nullable=False),
+    sa.Column('name', sa.String(length=127), nullable=False),
     sa.Column('picture', sa.String(length=255), nullable=True),
     sa.Column('access_token', sa.Text(), nullable=False),
-    sa.Column('access_expire', sa.BigInteger(), nullable=False),
-    sa.Column('login_at', sa.TIMESTAMP(), nullable=True),
+    sa.Column('access_expired', sa.BigInteger(), nullable=False),
     sa.PrimaryKeyConstraint('id')
     )
     op.create_index(op.f('ix_user_email'), 'user', ['email'], unique=True)

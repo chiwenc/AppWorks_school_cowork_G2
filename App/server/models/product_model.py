@@ -55,6 +55,7 @@ def get_products(page_size, paging, requirement = {}):
         
     products = product_query.limit(page_size).offset(page_size * paging).all()
     count = product_query.count()
+
     return {
         "products": [p.to_json() for p in products],
         "product_count": count

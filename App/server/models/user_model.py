@@ -9,7 +9,6 @@ class User(db.Model):
     picture = db.Column(db.String(255))
     access_token = db.Column(db.Text(), nullable=False)
     access_expired = db.Column(db.BigInteger(), nullable=False)
-    login_at = db.Column(db.TIMESTAMP())
 
     def __repr__(self):
         return '<User {}, {}, {}>'.format(self.id, self.name, self.email)

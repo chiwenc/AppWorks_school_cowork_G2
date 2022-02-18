@@ -6,6 +6,8 @@ from server.models.user_model import get_user, create_user
 from server.models.tracking_model import get_user_behavior_by_date
 from server.utils.util import dir_last_updated
 
+TOKEN_EXPIRE = app.config['TOKEN_EXPIRE']
+
 def get_hashed_password(plain_text_password):
     return bcrypt.hashpw(plain_text_password.encode('utf8'), bcrypt.gensalt())
 
@@ -44,7 +46,7 @@ def api_signin():
     access_token = create_access_token(identity=user["username"])
     return {
         "access_token": access_token,
-        "access_expired": 3600,
+        "access_expired": TOKEN_EXPIRE,
         "user": {
             "id": user["id"],
             "rovider": 'native',
@@ -72,11 +74,11 @@ def api_signup():
         "name": name,
         "picture": None,
         "access_token": access_token,
-        "access_expired": 2592000
+        "access_expired": TOKEN_EXPIRE
     })
     return {
         "access_token": access_token,
-        "access_expired": 3600,
+        "access_expired": TOKEN_EXPIRE,
         "user": {
             "id": user_id,
             "rovider": 'native',
