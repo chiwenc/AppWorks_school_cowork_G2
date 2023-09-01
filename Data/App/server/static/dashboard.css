@@ -1,0 +1,23 @@
+#all_user {
+    display: flex;
+}
+
+.user_count {
+    margin: 10px;
+}
+
+.left {
+    float: left;
+    width: 50%;
+    height: 500px;
+}
+
+.right {
+    float: left;
+    width: 50%;
+    height: 500px;
+}
+
+.date {
+    width: 20%;
+}
