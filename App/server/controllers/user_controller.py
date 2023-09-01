@@ -89,7 +89,7 @@ def api_signup():
     }
 
 @app.route('/api/1.0/profile', methods=['GET'])
-@jwt_required()
+@jwt_required
 def api_get_user_profile():
     current_user = get_jwt_identity()
     return f"Welcome! {current_user}"
