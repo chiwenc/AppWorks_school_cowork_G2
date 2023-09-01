@@ -1,5 +1,6 @@
 from server import db
 
+
 class TrackingAnalysis(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.TIMESTAMP(), unique=True)
@@ -12,10 +13,12 @@ class TrackingAnalysis(db.Model):
     add_to_cart_count = db.Column(db.Integer)
     checkout_count = db.Column(db.Integer)
 
+
 class TrackingRaw(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     request_url = db.Column(db.Text(), nullable=False)
     created_at = db.Column(db.TIMESTAMP())
+
 
 class TrackingRealtime(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -25,6 +28,7 @@ class TrackingRealtime(db.Model):
     view_detail = db.Column(db.String(255))
     item_id = db.Column(db.Integer)
     checkout_step = db.Column(db.Integer)
+
 
 def get_user_behavior_by_date(date):
     analysis = TrackingAnalysis.query.filter_by(date = date + ' 00:00:00').all()

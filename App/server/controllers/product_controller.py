@@ -3,7 +3,7 @@ from flask import request, render_template
 import os
 import random
 from server import app
-from server.models.product_model import get_products, get_products_variants, create_product
+from ..models.product_model import get_products, get_products_variants, create_product
 from werkzeug.utils import secure_filename
 
 PAGE_SIZE = 6
@@ -19,21 +19,23 @@ def product_recommendation_page():
     res = get_products(100, 0, {"source": "amazon"},)
     return render_template('product_recommendation.html', products = [{"id": p["id"], "title": p["title"]} for p in res["products"]])
 
+
 def find_product(category, paging):
-    if (category == 'all') :
+    if category == 'all':
         return get_products(PAGE_SIZE, paging, {"category": category})
-    elif (category in ['men', 'women', 'accessories']):
+    elif category in ['men', 'women', 'accessories']:
         return get_products(PAGE_SIZE, paging, {"category": category})
-    elif (category == 'search'):
+    elif category == 'search':
         keyword = request.values["keyword"]
-        if (keyword):
+        if keyword:
             return get_products(PAGE_SIZE, paging, {"keyword": keyword})
-    elif (category == 'details'):
+    elif category == 'details':
         product_id = request.values["id"]
         return get_products(PAGE_SIZE, paging, {"id": product_id})
-    elif (category == 'recommend'):
+    elif category == 'recommend':
         product_id = request.values["id"]
         return get_products(3, paging, {"recommend": product_id})
+
 
 def get_products_with_detail(url_root, products):
     product_ids = [p["id"] for p in products]
@@ -78,23 +80,25 @@ def get_products_with_detail(url_root, products):
         parse(product, variants_map) for product in products
     ]
 
+
 @app.route('/api/1.0/products/<category>', methods=['GET'])
 def api_get_products(category):
     paging = request.values.get('paging') or 0
     paging = int(paging)
     res = find_product(category, paging)
+    print(res)
 
-    if (not res):
-        return {"error":'Wrong Request'}
+    if not res:
+        return {"error": 'Wrong Request'}
 
     products = res.get("products")
     product_count = res.get("product_count")
 
-    if (not products):
-        return {"error":'Wrong Request'}
+    if not products:
+        return {"error": 'Wrong Request'}
     
-    if (not len(products)):
-        if (category == 'details'):
+    if not len(products):
+        if category == 'details':
             return {"data": None}
         else:
             return {"data": []}

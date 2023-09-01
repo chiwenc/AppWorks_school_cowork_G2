@@ -33,4 +33,4 @@ def handle_exception(e):
     return "Internal Server Error", 500
 
 
-from server.controllers import product_controller, user_controller
+from .controllers import product_controller, user_controller

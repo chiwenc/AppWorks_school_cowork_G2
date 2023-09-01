@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from flask import jsonify
-from server import db
+from ..__init__ import db
 from sqlalchemy import ForeignKey
-from server.models.recommendation_model import SimilarityModel
+from ..models.recommendation_model import SimilarityModel
+
 
 class Product(db.Model):
     id = db.Column(db.String(200), primary_key=True)
@@ -23,6 +24,7 @@ class Product(db.Model):
     def __repr__(self):
         return '<Product {}, {}, {}>'.format(self.id, self.category, self.title)
 
+
 class Variant(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     color_code = db.Column(db.String(15))
@@ -34,21 +36,22 @@ class Variant(db.Model):
     def __repr__(self):
         return '<Variant {}>'.format(self.id)
 
-def get_products(page_size, paging, requirement = {}):
+
+def get_products(page_size, paging, requirement={}):
     product_query = None
-    if ("category" in requirement):
+    if "category" in requirement:
         category = requirement.get("category")
-        if (category == 'all'):
+        if category == 'all':
             product_query = Product.query.filter_by(source = 'native')
         else:
             product_query = Product.query.filter_by(source = 'native', category = category)
-    elif ("keyword" in requirement):
+    elif "keyword" in requirement:
         product_query = Product.query.filter_by(source = 'native').filter(Product.title.like(f"%{requirement.get('keyword')}%"))
-    elif ("id" in requirement):
+    elif "id" in requirement:
         product_query = Product.query.filter_by(id = requirement.get("id"))
-    elif ("source" in requirement):
+    elif "source" in requirement:
         product_query = Product.query.filter_by(source = requirement.get("source"))
-    elif ("recommend" in requirement):
+    elif "recommend" in requirement:
         product_query = Product.query.join(SimilarityModel, Product.id == SimilarityModel.item2_id)\
             .filter_by(item1_id = requirement.get("recommend"))\
             .order_by(SimilarityModel.similarity.desc())
@@ -61,9 +64,11 @@ def get_products(page_size, paging, requirement = {}):
         "product_count": count
     }
 
+
 def get_products_variants(product_ids):
     variants = Variant.query.filter(Product.id.in_(product_ids)).all()
     return [v.to_json() for v in variants]
+
 
 def create_product(product, variants):
     try:
