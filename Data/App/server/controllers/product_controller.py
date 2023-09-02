@@ -62,9 +62,9 @@ def get_products_with_detail(url_root, products):
 
     def parse(product, variants_map):
         product_id = product["id"]
-        image_path = url_root + 'static/assets/' + str(product_id) + '/'
-        product["main_image"] = image_path + product["main_image"]
-        product["images"] = [image_path + img for img in product["images"].split(',')]
+        # image_path = url_root + 'static/assets/' + str(product_id) + '/'
+        product["main_image"] = product["main_image"]
+        product["images"] = [img for img in product["images"].split(',')]
         product_variants = variants_map[product_id]
         if not product_variants:
             return product

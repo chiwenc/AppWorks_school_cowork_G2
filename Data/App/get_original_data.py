@@ -58,7 +58,7 @@ def insert_to_db(data: list):
         color_dict = {}
         for page in data:
             for _ in page:
-                _id = _["id"]
+                _id = int(_["id"])
                 _category = _["category"]
                 _title = _["title"]
                 _description = _["description"]
