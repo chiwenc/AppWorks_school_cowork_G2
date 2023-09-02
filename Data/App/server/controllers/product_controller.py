@@ -209,7 +209,11 @@ def api_create_product():
 def api_marketing_hots():
     product_info = find_product(category="all", paging=0)
     del product_info["product_count"]
-    first_set = product_info["products"][:2]
-    second_set = product_info["products"][2:4]
+
+    product_id = product_info["products"][:6]
+    products_details = get_products_with_detail(url_root=None, products=product_id)
+
+    first_set = products_details[:3]
+    second_set = products_details[3:6]
     result = [{"title": "冬季新品搶先看", "products": first_set}, {"title": "百搭穿搭必敗品", "products": second_set}]
     return {"data": result}
