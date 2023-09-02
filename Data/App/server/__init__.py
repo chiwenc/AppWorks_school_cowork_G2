@@ -1,10 +1,13 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_migrate import Migrate
 from flask_sqlalchemy import Model, SQLAlchemy
 from config import Config
 from flask_jwt_extended import JWTManager
 from waitress import serve
 from werkzeug.exceptions import HTTPException
+# from flask_restx import Api
+# from apis.account.api import api as account_ns
+from flasgger import Swagger
 
 
 class BaseModel(Model):
@@ -16,6 +19,7 @@ app = Flask(__name__)
 app.config.from_object(Config)
 db = SQLAlchemy(app, model_class=BaseModel)
 migrate = Migrate(app, db)
+swagger = Swagger(app)
 
 jwt = JWTManager()
 jwt.init_app(app)

@@ -5,9 +5,23 @@ import random
 from server import app
 from ..models.product_model import get_products, get_products_variants, create_product
 from werkzeug.utils import secure_filename
+from flasgger import Swagger, swag_from
+
 
 PAGE_SIZE = 6
 ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
+
+# Swagger Part
+shared_definitions = {}
+
+product_list = {"definitions": shared_definitions,
+                "parameters": [{"name": "category",
+                                "in": "path",
+                                "type": "string",
+                                "enum": ["all", "men", "women", "accessories"],
+                                "required": "true"}],
+                "responses": {"200": {"description": "A list of products (may be filtered by category) [6 items/page]"},
+                                      "examples": {"rgb": ["red", "green", "blue"]}}}
 
 
 @app.route('/admin/product.html', methods=['GET'])
@@ -84,6 +98,7 @@ def get_products_with_detail(url_root, products):
 
 
 @app.route('/api/1.0/products/<category>', methods=['GET'])
+@swag_from(product_list)
 def api_get_products(category):
     paging = request.values.get('paging') or 0
     paging = int(paging)
