@@ -9,9 +9,11 @@ from werkzeug.utils import secure_filename
 PAGE_SIZE = 6
 ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
+
 @app.route('/admin/product.html', methods=['GET'])
 def admin_product():
     return render_template('product_create.html')
+
 
 @app.route('/')
 @app.route('/admin/recommendation.html')
@@ -50,7 +52,7 @@ def get_products_with_detail(url_root, products):
         product["main_image"] = image_path + product["main_image"]
         product["images"] = [image_path + img for img in product["images"].split(',')]
         product_variants = variants_map[product_id]
-        if (not product_variants):
+        if not product_variants:
             return product
 
         product["variants"] = [
