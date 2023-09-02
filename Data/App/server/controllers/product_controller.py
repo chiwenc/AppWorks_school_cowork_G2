@@ -6,6 +6,7 @@ from server import app
 from ..models.product_model import get_products, get_products_variants, create_product
 from werkzeug.utils import secure_filename
 from flasgger import Swagger, swag_from
+import json
 
 
 PAGE_SIZE = 6
@@ -122,11 +123,11 @@ def api_get_products(category):
 
     products_with_detail = \
         get_products_with_detail(request.url_root, products) if products[0]["source"] == 'native' else products
-    if (category == 'details'):
+    if category == 'details':
         products_with_detail = products_with_detail[0]
 
     result = {}
-    if (product_count > (paging + 1) * PAGE_SIZE):
+    if product_count > (paging + 1) * PAGE_SIZE:
         result = {
             "data": products_with_detail,
             "next_paging": paging + 1
@@ -136,9 +137,11 @@ def api_get_products(category):
     
     return result
 
+
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1] in ALLOWED_EXTENSIONS
+
 
 def save_file(folder, file):
     folder_root = app.root_path + app.config['UPLOAD_FOLDER']
@@ -155,6 +158,7 @@ def save_file(folder, file):
         return filename
     else:
         return None
+
 
 @app.route('/api/1.0/product', methods=['POST'])
 def api_create_product():
@@ -199,3 +203,13 @@ def api_create_product():
 
     create_product(product, variants)
     return "Ok"
+
+
+@app.route('/api/1.0/marketing/hots', methods=['GET'])
+def api_marketing_hots():
+    product_info = find_product(category="all", paging=0)
+    del product_info["product_count"]
+    first_set = product_info["products"][:2]
+    second_set = product_info["products"][2:4]
+    result = [{"title": "冬季新品搶先看", "products": first_set}, {"title": "百搭穿搭必敗品", "products": second_set}]
+    return {"data": result}
