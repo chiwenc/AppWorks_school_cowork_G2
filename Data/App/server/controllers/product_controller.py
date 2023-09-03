@@ -2,27 +2,28 @@ from collections import defaultdict
 from flask import request, render_template
 import os
 import random
+import json
 from server import app
 from ..models.product_model import get_products, get_products_variants, create_product
 from werkzeug.utils import secure_filename
-from flasgger import Swagger, swag_from
-import json
+from flasgger import Swagger, swag_from 
+from server.controllers.favorite import get_fav, insert_fav, delete_fav
 
 
 PAGE_SIZE = 6
 ALLOWED_EXTENSIONS = set(['pdf', 'png', 'jpg', 'jpeg', 'gif'])
 
-# Swagger Part
-shared_definitions = {}
+# # Swagger Part
+# shared_definitions = {}
 
-product_list = {"definitions": shared_definitions,
-                "parameters": [{"name": "category",
-                                "in": "path",
-                                "type": "string",
-                                "enum": ["all", "men", "women", "accessories"],
-                                "required": "true"}],
-                "responses": {"200": {"description": "A list of products (may be filtered by category) [6 items/page]"},
-                                      "examples": {"rgb": ["red", "green", "blue"]}}}
+# product_list = {"definitions": shared_definitions,
+#                 "parameters": [{"name": "category",
+#                                 "in": "path",
+#                                 "type": "string",
+#                                 "enum": ["all", "men", "women", "accessories"],
+#                                 "required": "true"}],
+#                 "responses": {"200": {"description": "A list of products (may be filtered by category) [6 items/page]"},
+#                                       "examples": {"rgb": ["red", "green", "blue"]}}}
 
 
 @app.route('/admin/product.html', methods=['GET'])
@@ -99,7 +100,7 @@ def get_products_with_detail(url_root, products):
 
 
 @app.route('/api/1.0/products/<category>', methods=['GET'])
-@swag_from(product_list)
+@swag_from(r"api_doc\product.yml")
 def api_get_products(category):
     paging = request.values.get('paging') or 0
     paging = int(paging)
@@ -126,6 +127,18 @@ def api_get_products(category):
     if category == 'details':
         products_with_detail = products_with_detail[0]
 
+    user_id = request.values.get("user_id",None)
+    if user_id:
+        fav_product_id_list = get_fav(user_id)
+        for product in products_with_detail:
+            if product["id"] in fav_product_id_list:
+                product["favorite"]=True
+            else:
+                product["favorite"]=False
+    else:
+        for product in products_with_detail:
+            product["favorite"]=False
+    
     result = {}
     if product_count > (paging + 1) * PAGE_SIZE:
         result = {
@@ -217,3 +230,77 @@ def api_marketing_hots():
     second_set = products_details[3:6]
     result = [{"title": "冬季新品搶先看", "products": first_set}, {"title": "百搭穿搭必敗品", "products": second_set}]
     return {"data": result}
+
+def get_variant_table_info(product_id_list):
+    """
+    this function is mainly for getting variant table info for favortite products 
+    """
+    data = get_products_variants(product_id_list)
+    result = {}
+
+    for item in data:
+        product_id = item['product_id']
+        color_code = item['color_code']
+        color_name = item['color_name']
+        size = item['size']
+        stock = item['stock']
+        
+        # 如果產品ID不在result中，創建一個新dict
+        if product_id not in result:
+            result[product_id] = {
+                "id": product_id,
+                "colors": [],
+                "sizes": [],
+                "variants": []
+            }
+
+        # 如果colors信息尚未添加，添加colors
+        if {"code": color_code, "name": color_name} not in result[product_id]["colors"]:
+            result[product_id]["colors"].append({"code": color_code, "name": color_name})
+        
+        # 如果size尚未添加，添加size
+        if size not in result[product_id]["sizes"]:
+            result[product_id]["sizes"].append(size)
+        
+        # 添加variants
+        result[product_id]["variants"].append({"color_code": color_code, "size": size, "stock": stock})
+    # return json.dumps(result, indent=4, ensure_ascii=False)
+    return result
+
+@app.route('/api/1.0/product/favorite/<action>', methods=['GET'])
+@swag_from(r"api_doc\favorite.yml")
+def favorite(action):
+    user_id = request.values.get("user_id")
+    fav_product_id = request.values.get("fav_product_id")
+    try:
+        if action == "get_fav": 
+            fav_product_id_list = get_fav(user_id)
+            fav_product_list = []
+            for fav_product_id in fav_product_id_list:
+                res = get_products(1000, 0, {"id": fav_product_id})
+                json_product = res["products"][0] # [{'id':1,'category':'men'}] -> {'id':1,'category':'men'}
+                json_product["images"] = [img for img in json_product["images"].split(',')]
+                detail_list = get_variant_table_info(fav_product_id_list)
+                json_product["variants"] = detail_list[int(fav_product_id)]["variants"]
+                json_product["colors"] = detail_list[int(fav_product_id)]["colors"]
+                json_product["sizes"] = detail_list[int(fav_product_id)]["sizes"]
+                json_product["favorite"] = True
+                fav_product_list.append(json_product)
+            # return jsonify({"data": fav_product_list})
+            return {"data": fav_product_list}, 200
+        elif action == "insert_fav":
+            insert_fav(user_id, fav_product_id)
+            return f"Successfully insert {user_id}:{fav_product_id}", 200
+        elif action == "delete_fav":
+            delete_fav(user_id, fav_product_id)
+            return f"Successfully delete {user_id}:{fav_product_id}", 200
+
+    except Exception as e:
+        error_message = str(e)  
+        print(f"An error occurred: {error_message}")  
+        return {"error": error_message}, 500 
+
+
+# with app.app_context():
+#     result = add_product_detail( ['201807201824','201807202140','201807202150'])
+#     print(result)

@@ -22,6 +22,8 @@ swagger = Swagger(app)
 jwt = JWTManager()
 jwt.init_app(app)
 
+# app.config["SQLALCHEMY_ECHO"] = True
+# app.config["SQLALCHEMY_RECORD_QUERIES"] = True
 
 # @app.errorhandler(404)
 # def server_error(error):

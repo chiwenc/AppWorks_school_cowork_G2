@@ -1,0 +1,24 @@
+endpoints include actions for get/insert/delete favorite product
+---
+parameters:
+  - name: action
+    in: path
+    type: string
+    enum: ['get_fav', 'insert_fav', 'delete_fev']
+    required: true
+    default: all
+# definitions:
+#   Palette:
+#     type: object
+#     properties:
+#       palette_name:
+#         type: array
+#         items:
+#           $ref: '#/definitions/Color'
+#   Color:
+#     type: string
+responses:
+  200:
+    description: success insert/delete response or a list of favorite product according to user_id
+    examples:
+      {"data": [{product1_dict},{product2_dict},{product3_dict}]}
