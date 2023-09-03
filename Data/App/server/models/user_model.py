@@ -1,4 +1,4 @@
-from ..__init__ import db
+from server import db
 
 
 class User(db.Model):

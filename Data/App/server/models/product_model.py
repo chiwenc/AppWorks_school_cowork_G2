@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from flask import jsonify
-from ..__init__ import db
+from server import db
 from sqlalchemy import ForeignKey
 from ..models.recommendation_model import SimilarityModel
 
