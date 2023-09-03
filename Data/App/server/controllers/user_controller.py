@@ -62,14 +62,16 @@ def api_signin():
         cursor.execute('UPDATE user SET access_token = %s WHERE email = %s', (access_token, email))
         conn.commit()
     return {
-        "access_token": access_token,
-        "access_expired": TOKEN_EXPIRE,
-        "user": {
-            "id": user["id"],
-            "provider": 'native',
-            "name": user["name"],
-            "email": email,
-            "picture": ""
+        "data": {
+            "access_token": access_token,
+            "access_expired": TOKEN_EXPIRE,
+            "user": {
+                "id": user["id"],
+                "provider": 'native',
+                "name": user["name"],
+                "email": email,
+                "picture": ""
+            }
         }
     }
 
@@ -97,14 +99,16 @@ def api_signup():
     })
 
     return {
-        "access_token": access_token,
-        "access_expired": TOKEN_EXPIRE,
-        "user": {
-            "id": user_id,
-            "provider": 'native',
-            "name": name,
-            "email": email,
-            "picture": ""
+        "data": {
+            "access_token": access_token,
+            "access_expired": TOKEN_EXPIRE,
+            "user": {
+                "id": user_id,
+                "provider": 'native',
+                "name": name,
+                "email": email,
+                "picture": ""
+            }
         }
     }
 
