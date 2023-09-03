@@ -18,7 +18,7 @@ conn = pymysql.connect(
 cursor = conn.cursor()
 
 def get_fav(user_id):
-    sql_check_fav = "SELECT * FROM favorite WHERE user_id = %s"
+    sql_check_fav = "SELECT distinct(fav_product_id) FROM favorite WHERE user_id = %s"
     cursor.execute(sql_check_fav, (user_id,))
     results = cursor.fetchall()
     fav_product_id_list = [results[i]["fav_product_id"] for i in range(len(results))]
