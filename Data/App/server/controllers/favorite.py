@@ -33,3 +33,7 @@ def delete_fav(user_id, fav_product_id):
     sql_delete_fav = "DELETE FROM favorite WHERE user_id = %s AND fav_product_id = %s"
     cursor.execute(sql_delete_fav, (user_id, fav_product_id))
     conn.commit()
+
+# insert_fav(50,123)
+delete_fav(50,123)
+print(get_fav(50))

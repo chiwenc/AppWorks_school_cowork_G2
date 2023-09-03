@@ -57,10 +57,10 @@ def api_signin():
         return jsonify({"error": "Bad password"}), 401
 
     access_token = create_access_token(identity=user["name"])
-    conn = pymysql.connect(**mysql_config.db_config)
-    with conn.cursor() as cursor:
-        cursor.execute('UPDATE user SET access_token = %s WHERE email = %s', (access_token, email))
-        conn.commit()
+    # conn = pymysql.connect(**mysql_config.db_config)
+    # with conn.cursor() as cursor:
+    #     cursor.execute('UPDATE user SET access_token = %s WHERE email = %s', (access_token, email))
+    #     conn.commit()
     return {
         "access_token": access_token,
         "access_expired": TOKEN_EXPIRE,
