@@ -8,6 +8,8 @@ from ..utils.util import dir_last_updated
 import json
 import pymysql
 from config import Config
+import uuid
+from datetime import datetime
 
 mysql_config = Config()
 
@@ -120,6 +122,7 @@ def api_get_user_profile():
     # msg for expired token: {"msg": "Token has expired"}
     return f"Welcome! {current_user}"
 
+
 @app.route('/api/1.0/user/behavior/<date>')
 def api_get_user_behavior(date):
     data = get_user_behavior_by_date(date)
@@ -133,3 +136,44 @@ def api_get_user_behavior(date):
             "behavior_count": [0]*4,
             "user_count": [0]*4
         }
+
+
+@app.route('/api/1.0/order/checkout', methods=["POST"])
+def api_checkout():
+    order_id = uuid.uuid4()
+    order_time = datetime.now()
+
+    form = request.get_data()
+    form = json.loads(form)
+    prime = form["prime"]
+    shipping = form["order"]["shipping"]
+    payment = form["order"]["payment"]
+    subtotal = form["order"]["subtotal"]
+    freight = form["order"]["freight"]
+    total = form["order"]["total"]
+    name = form["order"]["recipient"]["name"]
+    phone = form["order"]["recipient"]["phone"]
+    email = form["order"]["recipient"]["email"]
+    address = form["order"]["recipient"]["address"]
+    time = form["order"]["recipient"]["time"]
+    user_id = form["order"]["recipient"]["user_id"]
+    items = form["order"]["list"]
+    connection = pymysql.connect(**mysql_config.db_config)
+    with connection.cursor() as cursor:
+        for item in items:
+            product_id = item["id"]
+            product_name = item["name"]
+            product_price = item["price"]
+            product_color_name = item["color"]["name"]
+            product_color_code = item["color"]["code"]
+            product_size = item["size"]
+            product_qty = item["qty"]
+            cursor.execute('INSERT INTO order_history (order_id, order_time, user_id, prime, shipping, payment, '
+                           'subtotal, freight, total, name, phone, email, address, time, product_id, product_name, '
+                           'price, color_name, color_code, size, qty) '
+                           'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                           (order_id, order_time, user_id, prime, shipping, payment, subtotal, freight, total,
+                            name, phone, email, address, time, product_id, product_name, product_price,
+                            product_color_name, product_color_code, product_size, product_qty))
+    connection.commit()
+    return {"data": {"number": order_id}}
