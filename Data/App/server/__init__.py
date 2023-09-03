@@ -5,8 +5,6 @@ from config import Config
 from flask_jwt_extended import JWTManager
 from waitress import serve
 from werkzeug.exceptions import HTTPException
-# from flask_restx import Api
-# from apis.account.api import api as account_ns
 from flasgger import Swagger
 
 
@@ -25,9 +23,9 @@ jwt = JWTManager()
 jwt.init_app(app)
 
 
-@app.errorhandler(404)
-def server_error(error):
-    return "Page not found", 404
+# @app.errorhandler(404)
+# def server_error(error):
+#     return "Page not found", 404
 
 
 # @app.errorhandler(Exception)
