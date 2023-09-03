@@ -1,6 +1,7 @@
 from server import app
 from waitress import serve
 
+
 if __name__ == "__main__":
     if app.env == "production":
         serve(app, port=3000)

@@ -1,4 +1,5 @@
-from server import db
+from ..__init__ import db
+
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -13,9 +14,10 @@ class User(db.Model):
     def __repr__(self):
         return '<User {}, {}, {}>'.format(self.id, self.name, self.email)
 
+
 def get_user(email):
     try:
-        user = User.query.filter_by(email = email).all()
+        user = User.query.filter_by(email=email).all()
         if user:
             return user[0].to_json()
         else:
@@ -23,6 +25,7 @@ def get_user(email):
     except Exception as e:
         print(e)
         return None
+
 
 def create_user(user):
     try:
