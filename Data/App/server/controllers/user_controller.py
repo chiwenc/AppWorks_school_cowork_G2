@@ -5,8 +5,11 @@ from server import app
 from ..models.user_model import get_user, create_user
 from ..models.tracking_model import get_user_behavior_by_date
 from ..utils.util import dir_last_updated
+from pytz import timezone
 import json
 import pymysql
+import datetime
+import uuid
 from config import Config
 
 mysql_config = Config()
@@ -133,3 +136,37 @@ def api_get_user_behavior(date):
             "behavior_count": [0]*4,
             "user_count": [0]*4
         }
+
+@app.route('/api/1.0/user/tracking', methods=['GET'] )
+def tracking():
+    uuid = request.values.get("uuid")
+    event_type = request.values.get("event_type")
+    event_detail = request.values.get("event_detail")
+    source = request.values.get("source")
+    
+    current_time = datetime.datetime.now()
+    utc8_time = current_time.astimezone(timezone('Asia/Taipei'))
+    
+    conn = pymysql.connect(**mysql_config.db_config)    
+    with conn.cursor() as cursor:
+        sql_insert_tracking = """
+            INSERT INTO tracking (uuid, event_type, event_detail, source, time)
+            VALUES(%s,%s,%s,%s,%s)"""
+        cursor.execute(sql_insert_tracking, (uuid, event_type, event_detail, source, utc8_time))
+        conn.commit()
+    return "Successfully capture user behavior.", 200
+
+
+# @app.route('/api/1.0/ab_test/click/<source>')
+# def click(source):
+#     time = datetime.datetime.now()
+#     product_id = request.values.get("product_id")
+#     uuid = request.values.get("uuid")
+    
+#     conn = pymysql.connect(**mysql_config.db_config)    
+#     with conn.cursor() as cursor:
+#         sql_insert_click = """
+#             INSERT INTO ab_testing_click (time, uuid, product_id, source)
+#             VALUES(%s,%s,%s,%s)"""
+#         cursor.execute(sql_insert_click, (time, uuid, product_id, source))
+#         conn.commit()
