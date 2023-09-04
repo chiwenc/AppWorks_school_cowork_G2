@@ -11,7 +11,6 @@ from config import Config
 import uuid
 from datetime import datetime
 from pytz import timezone
-import datetime
 
 mysql_config = Config()
 
@@ -154,7 +153,7 @@ def tracking():
     event_detail = request.values.get("event_detail")
     source = request.values.get("source")
 
-    current_time = datetime.datetime.now()
+    current_time = datetime.now()
     utc8_time = current_time.astimezone(timezone('Asia/Taipei'))
 
     conn = pymysql.connect(**mysql_config.db_config)
