@@ -27,6 +27,18 @@ def get_user(email):
         return None
 
 
+def get_user_by_name(name):
+    try:
+        user = User.query.filter_by(name=name).all()
+        if user:
+            return user[0].to_json()
+        else:
+            return None
+    except Exception as e:
+        print(e)
+        return None
+
+
 def create_user(user):
     try:
         new_user = User(**user)

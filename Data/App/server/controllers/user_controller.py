@@ -2,7 +2,7 @@ import bcrypt
 from flask import request, jsonify, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from server import app
-from ..models.user_model import get_user, create_user
+from ..models.user_model import get_user, create_user, get_user_by_name
 from ..models.tracking_model import get_user_behavior_by_date
 from ..utils.util import dir_last_updated
 import json
@@ -119,8 +119,15 @@ def api_signup():
 @jwt_required
 def api_get_user_profile():
     current_user = get_jwt_identity()
+    user = get_user_by_name(current_user)
     # msg for expired token: {"msg": "Token has expired"}
-    return f"Welcome! {current_user}"
+    # return f"Welcome! {current_user}"
+    return {"data": {
+        "provider": "native",
+        "name": current_user,
+        "email": user["email"],
+        "picture": ""}
+    }
 
 
 @app.route('/api/1.0/user/behavior/<date>')
