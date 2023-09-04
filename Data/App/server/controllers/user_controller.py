@@ -10,6 +10,8 @@ import pymysql
 from config import Config
 import uuid
 from datetime import datetime
+from pytz import timezone
+import datetime
 
 mysql_config = Config()
 
@@ -143,6 +145,26 @@ def api_get_user_behavior(date):
             "behavior_count": [0]*4,
             "user_count": [0]*4
         }
+
+
+@app.route('/api/1.0/user/tracking', methods=['GET'] )
+def tracking():
+    uuid = request.values.get("uuid")
+    event_type = request.values.get("event_type")
+    event_detail = request.values.get("event_detail")
+    source = request.values.get("source")
+
+    current_time = datetime.datetime.now()
+    utc8_time = current_time.astimezone(timezone('Asia/Taipei'))
+
+    conn = pymysql.connect(**mysql_config.db_config)
+    with conn.cursor() as cursor:
+        sql_insert_tracking = """
+            INSERT INTO tracking (uuid, event_type, event_detail, source, time)
+            VALUES(%s,%s,%s,%s,%s)"""
+        cursor.execute(sql_insert_tracking, (uuid, event_type, event_detail, source, utc8_time))
+        conn.commit()
+    return "Successfully capture user behavior.", 200
 
 
 @app.route('/api/1.0/order/checkout', methods=["POST"])
