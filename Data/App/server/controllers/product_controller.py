@@ -3,11 +3,15 @@ from flask import request, render_template
 import os
 import random
 import json
+import pymysql
 from server import app
 from ..models.product_model import get_products, get_products_variants, create_product, get_all_order_history
 from werkzeug.utils import secure_filename
 from flasgger import Swagger, swag_from 
 from server.controllers.favorite import get_fav, insert_fav, delete_fav
+from config import Config
+
+mysql_config = Config()
 
 
 PAGE_SIZE = 6

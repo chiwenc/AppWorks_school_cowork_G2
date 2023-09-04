@@ -184,3 +184,16 @@ def api_checkout():
                             product_color_name, product_color_code, product_size, product_qty))
     connection.commit()
     return {"data": {"number": order_id}}
+
+
+@app.route('/api/1.0/uuid', methods=["GET"])
+def generate_uuid():
+    conn = pymysql.connect(**mysql_config.db_config)
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM uuid_source")
+        source = "A" if cursor.fetchone()[0] % 2 == 0 else "B"
+        _id = uuid.uuid4()
+        cursor.execute("INSERT INTO uuid_source (uuid, source) VALUES (%s, %s)",
+                       (_id, source))
+        conn.commit()
+    return {"uuid": _id, "source": source}
