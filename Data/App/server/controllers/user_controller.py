@@ -10,6 +10,8 @@ import pymysql
 from config import Config
 import uuid
 from datetime import datetime
+from pytz import timezone
+import datetime
 
 mysql_config = Config()
 
@@ -145,6 +147,26 @@ def api_get_user_behavior(date):
         }
 
 
+@app.route('/api/1.0/user/tracking', methods=['GET'] )
+def tracking():
+    uuid = request.values.get("uuid")
+    event_type = request.values.get("event_type")
+    event_detail = request.values.get("event_detail")
+    source = request.values.get("source")
+
+    current_time = datetime.datetime.now()
+    utc8_time = current_time.astimezone(timezone('Asia/Taipei'))
+
+    conn = pymysql.connect(**mysql_config.db_config)
+    with conn.cursor() as cursor:
+        sql_insert_tracking = """
+            INSERT INTO tracking (uuid, event_type, event_detail, source, time)
+            VALUES(%s,%s,%s,%s,%s)"""
+        cursor.execute(sql_insert_tracking, (uuid, event_type, event_detail, source, utc8_time))
+        conn.commit()
+    return "Successfully capture user behavior.", 200
+
+
 @app.route('/api/1.0/order/checkout', methods=["POST"])
 def api_checkout():
     order_id = uuid.uuid4()
@@ -184,3 +206,16 @@ def api_checkout():
                             product_color_name, product_color_code, product_size, product_qty))
     connection.commit()
     return {"data": {"number": order_id}}
+
+
+@app.route('/api/1.0/uuid', methods=["GET"])
+def generate_uuid():
+    conn = pymysql.connect(**mysql_config.db_config)
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM uuid_source")
+        source = "A" if cursor.fetchone()[0] % 2 == 0 else "B"
+        _id = uuid.uuid4()
+        cursor.execute("INSERT INTO uuid_source (uuid, source) VALUES (%s, %s)",
+                       (_id, source))
+        conn.commit()
+    return {"uuid": _id, "source": source}
