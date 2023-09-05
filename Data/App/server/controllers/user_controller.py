@@ -158,7 +158,7 @@ def tracking():
     action_to = request.values.get("action_to")
     source = request.values.get("source")
     
-    current_time = datetime.datetime.now()
+    current_time = datetime.now()
     utc8_time = current_time.astimezone(timezone('Asia/Taipei'))
     
     conn = pymysql.connect(**mysql_config.db_config)    
