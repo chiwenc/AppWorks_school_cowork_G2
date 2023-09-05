@@ -14,6 +14,7 @@ from config import Config
 import uuid
 from datetime import datetime
 from pytz import timezone
+from flasgger import Swagger, swag_from 
 
 mysql_config = Config()
 
@@ -149,6 +150,7 @@ def api_get_user_behavior(date):
         }
 
 @app.route('/api/1.0/user/tracking', methods=['GET'] )
+@swag_from("user_tracking.yml")
 def tracking():
     uuid = request.values.get("uuid")
     event_type = request.values.get("event_type")

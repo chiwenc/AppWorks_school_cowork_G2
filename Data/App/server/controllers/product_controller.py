@@ -104,7 +104,7 @@ def get_products_with_detail(url_root, products):
 
 
 @app.route('/api/1.0/products/<category>', methods=['GET'])
-@swag_from(r"api_doc\product.yml")
+@swag_from("product.yml")
 def api_get_products(category):
     paging = request.values.get('paging') or 0
     paging = int(paging)
@@ -272,7 +272,7 @@ def get_variant_table_info(product_id_list):
     return result
 
 @app.route('/api/1.0/product/favorite/<action>', methods=['GET'])
-@swag_from(r"api_doc\favorite.yml")
+@swag_from("favorite.yml")
 def favorite(action):
     user_id = request.values.get("user_id")
     fav_product_id = request.values.get("fav_product_id")

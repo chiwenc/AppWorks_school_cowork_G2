@@ -1,0 +1,40 @@
+insert user behavior into tracking table
+---
+parameters:
+  - name: uuid
+    in: path
+    type: string
+    enum: 
+    required: true
+    default: all
+  - name: event_type
+    in: path
+    type: string
+    enum: ["visit", "click", "leave"]
+    required: true
+    # default: all
+  - name: action_from
+    in: path
+    type: string
+    enum: ["hots", "details", "favortite", "recommend", "cart", "order_history","user_profile"]
+    required: true
+    default: all
+  - name: action_to
+    in: path
+    type: string
+    enum: ["hots", "product_id", "favortite", "recommend", "cart", "order_history","user_profile"]
+    required: true
+    default: all
+# definitions:
+#   Palette:
+#     type: object
+#     properties:
+#       palette_name:
+#         type: array
+#         items:
+#           $ref: '#/definitions/Color'
+#   Color:
+#     type: string
+responses:
+  200:
+    description: "Successfully capture user behavior."
