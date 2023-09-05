@@ -141,7 +141,8 @@ def api_get_user_behavior(date):
 def tracking():
     uuid = request.values.get("uuid")
     event_type = request.values.get("event_type")
-    event_detail = request.values.get("event_detail")
+    action_from = request.values.get("action_from")
+    action_to = request.values.get("action_to")
     source = request.values.get("source")
     
     current_time = datetime.datetime.now()
@@ -150,23 +151,10 @@ def tracking():
     conn = pymysql.connect(**mysql_config.db_config)    
     with conn.cursor() as cursor:
         sql_insert_tracking = """
-            INSERT INTO tracking (uuid, event_type, event_detail, source, time)
-            VALUES(%s,%s,%s,%s,%s)"""
-        cursor.execute(sql_insert_tracking, (uuid, event_type, event_detail, source, utc8_time))
+            INSERT INTO tracking (uuid, event_type, action_from, action_to, source, time)
+            VALUES(%s,%s,%s,%s,%s,%s)"""
+        cursor.execute(sql_insert_tracking, (uuid, event_type, action_from, action_to, source, utc8_time))
         conn.commit()
     return "Successfully capture user behavior.", 200
 
 
-# @app.route('/api/1.0/ab_test/click/<source>')
-# def click(source):
-#     time = datetime.datetime.now()
-#     product_id = request.values.get("product_id")
-#     uuid = request.values.get("uuid")
-    
-#     conn = pymysql.connect(**mysql_config.db_config)    
-#     with conn.cursor() as cursor:
-#         sql_insert_click = """
-#             INSERT INTO ab_testing_click (time, uuid, product_id, source)
-#             VALUES(%s,%s,%s,%s)"""
-#         cursor.execute(sql_insert_click, (time, uuid, product_id, source))
-#         conn.commit()
