@@ -3,11 +3,15 @@ from flask import request, render_template
 import os
 import random
 import json
+import pymysql
 from server import app
-from ..models.product_model import get_products, get_products_variants, create_product
+from ..models.product_model import get_products, get_products_variants, create_product, get_all_order_history
 from werkzeug.utils import secure_filename
 from flasgger import Swagger, swag_from 
 from server.controllers.favorite import get_fav, insert_fav, delete_fav
+from config import Config
+
+mysql_config = Config()
 
 
 PAGE_SIZE = 6
@@ -300,6 +304,15 @@ def favorite(action):
         print(f"An error occurred: {error_message}")  
         return {"error": error_message}, 500 
 
+@app.route('/api/1.0/orderHistory', methods = ['GET'])
+def api_get_all_order_history():
+    try:
+        user_id = request.values.get("user_id")
+        # user_id = 'mockuserid1'
+        return get_all_order_history(user_id)
+    except Exception as e:
+        error_message = f"An error occurred: {str(e)}"
+        return {"error": error_message}
 
 # with app.app_context():
 #     result = add_product_detail( ['201807201824','201807202140','201807202150'])

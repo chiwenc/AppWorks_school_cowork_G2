@@ -2,7 +2,7 @@ import bcrypt
 from flask import request, jsonify, render_template
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from server import app
-from ..models.user_model import get_user, create_user
+from ..models.user_model import get_user, create_user, get_user_by_name
 from ..models.tracking_model import get_user_behavior_by_date
 from ..utils.util import dir_last_updated
 from pytz import timezone
@@ -11,6 +11,9 @@ import pymysql
 import datetime
 import uuid
 from config import Config
+import uuid
+from datetime import datetime
+from pytz import timezone
 
 mysql_config = Config()
 
@@ -120,8 +123,16 @@ def api_signup():
 @jwt_required
 def api_get_user_profile():
     current_user = get_jwt_identity()
+    user = get_user_by_name(current_user)
     # msg for expired token: {"msg": "Token has expired"}
-    return f"Welcome! {current_user}"
+    # return f"Welcome! {current_user}"
+    return {"data": {
+        "provider": "native",
+        "name": current_user,
+        "email": user["email"],
+        "picture": ""}
+    }
+
 
 @app.route('/api/1.0/user/behavior/<date>')
 def api_get_user_behavior(date):
@@ -158,3 +169,55 @@ def tracking():
     return "Successfully capture user behavior.", 200
 
 
+@app.route('/api/1.0/order/checkout', methods=["POST"])
+def api_checkout():
+    order_id = uuid.uuid4()
+    order_time = datetime.now()
+
+    form = request.get_data()
+    form = json.loads(form)
+    prime = form["prime"]
+    shipping = form["order"]["shipping"]
+    payment = form["order"]["payment"]
+    subtotal = form["order"]["subtotal"]
+    freight = form["order"]["freight"]
+    total = form["order"]["total"]
+    name = form["order"]["recipient"]["name"]
+    phone = form["order"]["recipient"]["phone"]
+    email = form["order"]["recipient"]["email"]
+    address = form["order"]["recipient"]["address"]
+    time = form["order"]["recipient"]["time"]
+    user_id = form["order"]["recipient"]["user_id"]
+    items = form["order"]["list"]
+    connection = pymysql.connect(**mysql_config.db_config)
+    with connection.cursor() as cursor:
+        for item in items:
+            product_id = item["id"]
+            product_name = item["name"]
+            product_price = item["price"]
+            product_color_name = item["color"]["name"]
+            product_color_code = item["color"]["code"]
+            product_size = item["size"]
+            product_qty = item["qty"]
+            cursor.execute('INSERT INTO order_history (order_id, order_time, user_id, prime, shipping, payment, '
+                           'subtotal, freight, total, name, phone, email, address, time, product_id, product_name, '
+                           'price, color_name, color_code, size, qty) '
+                           'VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
+                           (order_id, order_time, user_id, prime, shipping, payment, subtotal, freight, total,
+                            name, phone, email, address, time, product_id, product_name, product_price,
+                            product_color_name, product_color_code, product_size, product_qty))
+    connection.commit()
+    return {"data": {"number": order_id}}
+
+
+@app.route('/api/1.0/uuid', methods=["GET"])
+def generate_uuid():
+    conn = pymysql.connect(**mysql_config.db_config)
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT COUNT(*) FROM uuid_source")
+        source = "A" if cursor.fetchone()[0] % 2 == 0 else "B"
+        _id = uuid.uuid4()
+        cursor.execute("INSERT INTO uuid_source (uuid, source) VALUES (%s, %s)",
+                       (_id, source))
+        conn.commit()
+    return {"uuid": _id, "source": source}
